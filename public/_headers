@@ -1,0 +1,10 @@
+# Para Cloudflare Pages y Netlify: el service worker y la app nunca deben quedarse viejos;
+# los archivos con hash en el nombre sí se pueden guardar para siempre.
+/sw.js
+  Cache-Control: no-cache
+/manifest.webmanifest
+  Cache-Control: no-cache
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+/personajes/*
+  Cache-Control: public, max-age=604800

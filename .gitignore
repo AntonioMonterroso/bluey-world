@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# vista previa local de GitHub Pages
+/.pages-preview/
+
+# dibujos originales de referencia (no se publican)
+/referencias-originales/

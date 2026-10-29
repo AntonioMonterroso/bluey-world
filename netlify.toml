@@ -1,0 +1,4 @@
+# Si publicas en Netlify: se construye como sitio estático y se sube la carpeta out/.
+[build]
+  command = "npm run build:static"
+  publish = "out"
