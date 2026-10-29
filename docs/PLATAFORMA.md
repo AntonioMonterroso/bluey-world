@@ -1,6 +1,6 @@
 # Plataforma: publicar, cuenta y sincronización
 
-Estado: **lista para publicar.** Lo que falta son pasos que solo puede hacer el dueño de las cuentas (crear la cuenta, revocar el token, subir el sitio). Esta guía los deja en orden.
+Estado: **publicada en GitHub Pages** → https://antoniomonterroso.github.io/bluey-world/ (se vuelve a publicar sola con cada `git push` a `main`). Lo de Cloudflare de abajo queda como alternativa. Lo que falta son pasos que solo puede hacer el dueño de las cuentas (crear la cuenta, revocar el token, subir el sitio). Esta guía los deja en orden.
 
 ## Qué ya está preparado
 
