@@ -22,6 +22,17 @@ Estado: **publicada en GitHub Pages** → https://antoniomonterroso.github.io/bl
 
 > Nunca pongas la clave `service_role` ni el token `sbp_` en variables de la app ni en el repositorio.
 
+## Cuentas: solo tú las creas
+
+La app pide entrar al abrirla. No tiene botón de «crear cuenta»: las cuentas las creas tú en Supabase.
+
+1. Supabase → tu proyecto → **Authentication → Users → Add user → Create new user**.
+2. **Email:** el usuario que quieras + `@bluey-world.app` (ejemplo: `ana@bluey-world.app`). En la app, esa persona escribe solo `ana`.
+3. **Password:** mínimo 6 caracteres. Marca **Auto Confirm User**.
+4. Después apaga los registros: **Authentication → Sign In / Providers → Allow new users to sign up** (desactivado). Las cuentas que crees tú siguen funcionando.
+
+Cada cuenta ve solo sus datos (lo protege la base con RLS). Al tocar **Salir** en Ajustes, la app sube lo pendiente y borra los datos de ese dispositivo, para que la siguiente persona empiece limpia.
+
 ## Paso 2. Crear tu cuenta y probar la sincronización
 
 (Lo haces tú: yo no puedo crear cuentas ni escribir contraseñas.)

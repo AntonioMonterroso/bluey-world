@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Cloud, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { signOut, useAuth, usernameOf } from "@/lib/auth";
+import { logout, useAuth, usernameOf } from "@/lib/auth";
 
 export function AccountCard() {
   const { ready, user, configured } = useAuth();
@@ -31,7 +31,14 @@ export function AccountCard() {
         )}
       </div>
       {user ? (
-        <Button variant="outline" onClick={() => void signOut()} className="rounded-2xl">
+        <Button
+          variant="outline"
+          className="h-11 rounded-2xl"
+          onClick={async () => {
+            const pending = await logout();
+            if (pending > 0 && confirm(`Hay ${pending} cambios que todavía no se subieron (¿sin internet?). Si sales ahora, se pierden en este dispositivo. ¿Salir igual?`)) await logout(true);
+          }}
+        >
           <LogOut aria-hidden /> Salir
         </Button>
       ) : (

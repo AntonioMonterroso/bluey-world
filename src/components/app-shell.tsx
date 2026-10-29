@@ -11,6 +11,8 @@ import { TimerHost } from "@/components/timer-host";
 import { GameEngine } from "@/components/game-engine";
 import { GameChip } from "@/components/game-chip";
 import { BakeryMenuSync } from "@/components/bakery-menu-sync";
+import { LoginScreen } from "@/components/login-screen";
+import { useAuth } from "@/lib/auth";
 
 const NAV = [
   { href: "/", label: "Inicio", icon: Home },
@@ -59,6 +61,15 @@ function NavLink({
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const auth = useAuth();
+
+  // Sin sesión no se ve la app: primero la pantalla de entrada (si la nube está configurada).
+  if (!auth.ready) return <><AppBootstrap /><div className="min-h-dvh" aria-busy="true" /></>;
+  if (auth.configured && !auth.user) return <><AppBootstrap /><LoginScreen /></>;
+  return <Shell pathname={pathname}>{children}</Shell>;
+}
+
+function Shell({ pathname, children }: { pathname: string; children: React.ReactNode }) {
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : (SECTIONS[href] ?? [href]).some((p) => pathname === p || pathname.startsWith(`${p}/`));
 

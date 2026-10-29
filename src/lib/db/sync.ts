@@ -18,11 +18,13 @@ async function getMeta(key: string) {
   return (await db.meta.get(key))?.value;
 }
 
-async function resetLocal() {
-  await db.transaction("rw", [...SYNC_TABLES.map((t) => db.table(t)), db.outbox, db.meta], async () => {
+/** Borra los datos de este dispositivo (los de la nube quedan intactos). */
+export async function resetLocal() {
+  await db.transaction("rw", [...SYNC_TABLES.map((t) => db.table(t)), db.outbox, db.meta, db.timers], async () => {
     for (const t of SYNC_TABLES) await db.table(t).clear();
     await db.outbox.clear();
     await db.meta.clear();
+    await db.timers.clear();
   });
 }
 

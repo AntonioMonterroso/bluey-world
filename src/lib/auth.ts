@@ -3,7 +3,8 @@
 import { useSyncExternalStore } from "react";
 import type { User } from "@supabase/supabase-js";
 import { getSupabase } from "@/lib/supabase";
-import { syncNow } from "@/lib/db/sync";
+import { resetLocal, syncNow } from "@/lib/db/sync";
+import { db } from "@/lib/db/db";
 
 // Login con usuario + contraseña. Supabase pide un correo, así que el usuario se
 // convierte en un correo interno (no se envía nada; la confirmación por correo debe
@@ -93,4 +94,18 @@ export async function signUp(username: string, password: string): Promise<string
 
 export async function signOut() {
   await getSupabase()?.auth.signOut();
+}
+
+/**
+ * Salir de la cuenta: primero sube lo pendiente y luego borra los datos de este dispositivo,
+ * así la siguiente persona que entre empieza limpia. Devuelve cuántos cambios quedaron sin subir
+ * (si hay, no sale salvo que `force` sea true).
+ */
+export async function logout(force = false): Promise<number> {
+  await syncNow();
+  const pending = await db.outbox.count();
+  if (pending > 0 && !force) return pending;
+  await resetLocal();
+  await signOut();
+  return 0;
 }
