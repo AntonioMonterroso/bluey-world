@@ -20,7 +20,7 @@ export function LoginScreen() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (normalizeUsername(username).length < 3) return setError("Escribe tu usuario.");
+    if (!username.includes("@") && normalizeUsername(username).length < 3) return setError("Escribe tu usuario o tu correo.");
     if (password.length < 6) return setError("La contraseña tiene al menos 6 caracteres.");
     setBusy(true);
     const problem = await signIn(username, password);
@@ -44,11 +44,11 @@ export function LoginScreen() {
           </div>
           <div>
             <h2 className="text-3xl">Entrar</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Entra con tu usuario para ver tus cosas. Cada cuenta guarda sus propios datos.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Entra con tu usuario (o el correo de tu cuenta) para ver tus cosas. Cada cuenta guarda sus propios datos.</p>
           </div>
           <div className="flex flex-col gap-2">
-            <label htmlFor="usuario" className={labelClass}>Usuario</label>
-            <input id="usuario" className={inputClass} value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" autoCapitalize="none" spellCheck={false} maxLength={30} />
+            <label htmlFor="usuario" className={labelClass}>Usuario o correo</label>
+            <input id="usuario" className={inputClass} value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" autoCapitalize="none" spellCheck={false} maxLength={80} inputMode="email" />
           </div>
           <div className="flex flex-col gap-2">
             <label htmlFor="clave" className={labelClass}>Contraseña</label>

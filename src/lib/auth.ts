@@ -27,7 +27,11 @@ export function normalizeUsername(raw: string) {
   return raw.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "");
 }
 
-const toEmail = (username: string) => `${normalizeUsername(username)}@${EMAIL_DOMAIN}`;
+/** Acepta un usuario corto ("nombre") o el correo completo con el que se creó la cuenta en Supabase. */
+const toEmail = (input: string) => {
+  const t = input.trim().toLowerCase();
+  return t.includes("@") ? t : `${normalizeUsername(t)}@${EMAIL_DOMAIN}`;
+};
 
 export function usernameOf(user: User | null) {
   return user?.email?.endsWith(`@${EMAIL_DOMAIN}`) ? user.email.split("@")[0] : (user?.email ?? "");
@@ -64,7 +68,7 @@ export function useAuth() {
 }
 
 const MESSAGES: Record<string, string> = {
-  "Invalid login credentials": "Usuario o contraseña incorrectos.",
+  "Invalid login credentials": "Usuario o contraseña incorrectos. Si tu cuenta se creó con un correo, escribe el correo completo.",
   "User already registered": "Ese usuario ya existe. Prueba entrar con él.",
   "Email not confirmed": "La cuenta requiere confirmación. Hay que desactivarla en Supabase.",
   "Signup is disabled": "Ya no se pueden crear cuentas nuevas.",
