@@ -9,15 +9,16 @@ import { daysUntil, isOpen, useOrders, usePantry, pantryState } from "@/lib/kitc
 import { dueLabel, dueSoon, totalsOf } from "@/lib/money-core";
 import { useRecurring } from "@/lib/money";
 import { useRecipes } from "@/lib/recipes";
+import { useProfile } from "@/lib/db/profile";
 import { useIsClient } from "@/lib/use-is-client";
 import { goalStates, weekGoals, weekWindow } from "@/lib/game/progress";
 import { useProgressData } from "@/lib/progress-data";
 import { useMoney } from "@/lib/use-money";
 import { cn } from "@/lib/utils";
 
-function Card({ title, icon: Icon, href, children, cta }: { title: string; icon: typeof Wallet; href: string; children: React.ReactNode; cta: string }) {
+function Card({ title, icon: Icon, href, children, cta, first }: { title: string; icon: typeof Wallet; href: string; children: React.ReactNode; cta: string; first?: boolean }) {
   return (
-    <section aria-label={title} className="flex flex-col gap-3 rounded-[2rem] border bg-card p-5">
+    <section aria-label={title} data-first={first ? "" : undefined} className="flex flex-col gap-3 rounded-[2rem] border bg-card p-5">
       <h2 className="flex items-center gap-2 text-xl"><Icon className="size-6 text-primary" aria-hidden /> {title}</h2>
       <div className="flex flex-1 flex-col gap-2 text-sm">{children}</div>
       <Link href={href} className="inline-flex min-h-11 w-fit items-center font-semibold text-primary underline underline-offset-4">{cta}</Link>
@@ -33,6 +34,7 @@ function Inner() {
   const recipes = useRecipes();
   const game = useGame();
   const progress = useProgressData();
+  const { profile } = useProfile();
   const fmt = useMoney();
   const now = Date.now();
   if (!moves || !recurring || !orders || !pantry || !recipes || !progress) return null;
@@ -61,8 +63,8 @@ function Inner() {
         </ul>
       )}
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card title="Dinero" icon={Wallet} href="/dinero" cta="Abrir Dinero">
+      <div className="grid gap-4 md:grid-cols-3 [&>[data-first]]:order-first">
+        <Card first={profile.interest === "dinero"} title="Dinero" icon={Wallet} href="/dinero" cta="Abrir Dinero">
           <p>Este mes: <span className="font-semibold text-primary">+{fmt(t.income)}</span> · <span className="font-semibold">−{fmt(t.spent)}</span></p>
           <p className={cn("font-heading text-2xl tabular-nums", t.net < 0 && "text-destructive")}>{t.net < 0 ? "−" : ""}{fmt(Math.abs(t.net))}</p>
           {nextDue ? (
@@ -72,13 +74,13 @@ function Inner() {
           )}
         </Card>
 
-        <Card title="Cocina" icon={ChefHat} href="/recetas" cta="Abrir Cocina">
+        <Card first={profile.interest === "cocina"} title="Cocina" icon={ChefHat} href="/recetas" cta="Abrir Cocina">
           <p><span className="font-semibold">{recipes.length}</span> {recipes.length === 1 ? "receta" : "recetas"} guardadas</p>
           <p className="text-muted-foreground">{ordersSoon.length ? `${ordersSoon.length} pedido(s) para entregar pronto` : "Sin pedidos para hoy ni mañana."}</p>
           <p className="text-muted-foreground">{expiring.length ? `${expiring.length} cosa(s) por vencer en la despensa` : "Despensa al día."}</p>
         </Card>
 
-        <Card title="Jugar" icon={Gamepad2} href="/jugar" cta="Abrir Jugar">
+        <Card first={profile.interest === "juego"} title="Jugar" icon={Gamepad2} href="/jugar" cta="Abrir Jugar">
           <p className="font-heading text-2xl">Nivel {game.ready ? game.level : "–"} · {game.ready ? game.title : ""}</p>
           <p className="flex items-center gap-1 font-semibold text-primary"><Coins className="size-4" aria-hidden /> {game.ready ? game.coins : "–"} monedas</p>
           <p className="text-muted-foreground">Metas de la semana: <span className="font-semibold text-foreground">{weekDone} de 3</span></p>

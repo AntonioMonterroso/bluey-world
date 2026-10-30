@@ -3,6 +3,8 @@ import { getSupabase } from "@/lib/supabase";
 import { setSyncStatus } from "./sync-status";
 
 const PAGE = 500;
+/** Cambiar esta fecha hace que cada dispositivo borre sus datos guardados y empiece limpio la próxima vez que entre (la nube no se toca). */
+const DEVICE_EPOCH = "2026-10-29";
 let running = false;
 let timer: ReturnType<typeof setTimeout> | undefined;
 
@@ -50,10 +52,13 @@ export async function syncNow() {
   running = true;
   setSyncStatus({ state: "syncing" });
   try {
-    // Si entra otra persona en este dispositivo, no se mezclan los datos.
+    // Primera vez que alguien entra en este dispositivo, otra persona, o reinicio pedido: se empieza limpio.
+    // Así nadie arrastra datos de prueba ni ve los de otra cuenta.
     const lastUser = await getMeta("userId");
-    if (lastUser && lastUser !== user.id) await resetLocal();
+    const epoch = await getMeta("epoch");
+    if (!lastUser || lastUser !== user.id || epoch !== DEVICE_EPOCH) await resetLocal();
     await db.meta.put({ key: "userId", value: user.id });
+    await db.meta.put({ key: "epoch", value: DEVICE_EPOCH });
 
     // 1) Subir
     const items = await db.outbox.orderBy("seq").toArray();

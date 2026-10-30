@@ -3,6 +3,7 @@ import { AccountCard } from "@/components/account-card";
 import { CharacterPicker } from "@/components/character-picker";
 import { CurrencyField } from "@/components/currency-field";
 import { NameField } from "@/components/name-field";
+import { ProfileExtras } from "@/components/profile-extras";
 import { ThemePicker } from "@/components/theme-picker";
 import { ART } from "@/lib/characters";
 import { BRAND } from "@/lib/brand";
@@ -13,8 +14,9 @@ export default function Page() {
       <h1 className="text-4xl">Ajustes</h1>
 
       <section aria-labelledby="perfil" className="flex flex-col gap-3">
-        <h2 id="perfil" className="text-2xl">Tu nombre</h2>
+        <h2 id="perfil" className="text-2xl">Tú</h2>
         <NameField />
+        <ProfileExtras />
       </section>
 
       <section aria-labelledby="cuenta" className="flex flex-col gap-3">

@@ -24,7 +24,7 @@ function Inner() {
 
   if (!ready || !data) return null;
   const vars = {
-    nombre: profile.name?.trim() || "amiga", local: bakery.name || "tu pastelería",
+    nombre: profile.nickname?.trim() || profile.name?.trim() || "amiga", local: bakery.name || "tu pastelería",
     rep: String(FINAL_REPUTATION), recetas: String(data.cooks), turnos: String(data.shifts),
   };
   const chapter = playing ? chapterByN(playing) : undefined;

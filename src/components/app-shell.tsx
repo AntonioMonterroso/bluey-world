@@ -13,6 +13,9 @@ import { GameChip } from "@/components/game-chip";
 import { BakeryMenuSync } from "@/components/bakery-menu-sync";
 import { LoginScreen } from "@/components/login-screen";
 import { useAuth } from "@/lib/auth";
+import { Onboarding } from "@/components/onboarding";
+import { useProfile } from "@/lib/db/profile";
+import { useSyncStatus } from "@/lib/db/sync-status";
 
 const NAV = [
   { href: "/", label: "Inicio", icon: Home },
@@ -62,10 +65,16 @@ function NavLink({
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const auth = useAuth();
+  const sync = useSyncStatus();
+  const { ready: profileReady, profile } = useProfile();
 
   // Sin sesión no se ve la app: primero la pantalla de entrada (si la nube está configurada).
   if (!auth.ready) return <><AppBootstrap /><div className="min-h-dvh" aria-busy="true" /></>;
   if (auth.configured && !auth.user) return <><AppBootstrap /><LoginScreen /></>;
+  // Recién entrada: espera a bajar sus datos (por si ya hizo el registro en otro dispositivo).
+  const firstSyncDone = !auth.configured || sync.lastSync !== null || sync.state === "error" || sync.state === "offline";
+  if (!firstSyncDone || !profileReady) return <><AppBootstrap /><div className="flex min-h-dvh items-center justify-center text-muted-foreground" aria-busy="true">Preparando tu cuenta…</div></>;
+  if (!profile.onboarded_at) return <><AppBootstrap /><Onboarding /></>;
   return <Shell pathname={pathname}>{children}</Shell>;
 }
 

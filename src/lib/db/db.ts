@@ -21,6 +21,10 @@ export interface Profile extends SyncRow {
   looks?: { name: string; outfit: Record<string, string>; fav?: boolean }[]; // looks guardados
   fits?: Record<string, { x: number; y: number; s: number; r: number }>; // cómo le queda cada prenda a cada personaje ("personaje|prenda")
   sfx?: boolean; // efectos de sonido del juego (activados por defecto)
+  nickname?: string; // cómo le gusta que le digan
+  birthday?: string; // "MM-DD" (sin año)
+  interest?: "cocina" | "dinero" | "juego"; // lo que más le gusta (ordena el Inicio)
+  onboarded_at?: number; // cuándo terminó el registro inicial
 }
 
 /** Temporizador local (no se sincroniza). Se calcula con la hora de fin, así sobrevive a pantalla bloqueada. */
