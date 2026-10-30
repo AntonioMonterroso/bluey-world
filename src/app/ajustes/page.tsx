@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { AccountCard } from "@/components/account-card";
+import { BackupCard } from "@/components/backup-card";
 import { CharacterPicker } from "@/components/character-picker";
 import { CurrencyField } from "@/components/currency-field";
 import { NameField } from "@/components/name-field";
@@ -22,6 +23,7 @@ export default function Page() {
       <section aria-labelledby="cuenta" className="flex flex-col gap-3">
         <h2 id="cuenta" className="text-2xl">Cuenta y respaldo</h2>
         <AccountCard />
+        <BackupCard />
       </section>
 
       <section aria-labelledby="moneda" className="flex flex-col gap-3">
