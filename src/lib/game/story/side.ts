@@ -93,7 +93,7 @@ export const BARRIO: Chapter[] = [
       { k: "say", who: "judo", text: "Una pastelera profesional anota todo: qué salió bien, qué salió mal, qué cambiaría. Yo tengo once cuadernos.", stage: ["judo", "yo"] },
       { k: "say", who: "yo", text: "Yo solo me acuerdo... a veces." },
       { k: "say", who: "judo", text: "La memoria es buena. El cuaderno es mejor. En tu Diario de postres, escribe una nota o «qué cambiaría» de algo que cocinaste.", stage: ["judo", "yo"] },
-      { k: "task", id: "diary", text: "Escribe una nota (o «qué cambiaría», o agrega una foto) en el Diario de postres.", href: "/mi-cocina/diario", cta: "Abrir el Diario" },
+      { k: "task", id: "diary", text: "Escribe una nota (o «qué cambiaría», o agrega una foto) en tu Diario (en Postres).", href: "/diario", cta: "Abrir el Diario" },
       { k: "say", who: "judo", text: "Perfecto. La próxima vez que hagas esa receta, vas a saber exactamente qué ajustar. Eso se llama mejorar. Oficialmente.", stage: ["judo", "yo"] },
     ],
   },

@@ -142,7 +142,7 @@ function VenderPhase({ d, shift, setShift, fmt, workingIds }: { d: VentaData; sh
       </div>
 
       <BakeryScene
-        name={d.bakery.name} decor={d.bakery.decor} menu={d.active} character={d.profile.character} outfit={d.profile.outfit}
+        name={d.bakery.name} decor={d.bakery.decor} stickers={d.bakery.stickers} menu={d.active} character={d.profile.character} outfit={d.profile.outfit}
         staff={d.staff.filter((x) => workingIds.includes(x.id)).map((x) => x.char)} staffOutfits={d.staffOutfits}
         event={ev ? { name: ev.def.name, icon: ev.def.icon } : undefined}
         todayProps={d.dayPlan} visitors={visitors} pops={pops} daylight={progress}

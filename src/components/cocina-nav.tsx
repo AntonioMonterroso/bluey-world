@@ -9,7 +9,6 @@ const TABS = [
   { href: "/cocinar", label: "Cocinar" },
   { href: "/temporizadores", label: "Temporizadores" },
   { href: "/mi-cocina", label: "Pedidos" },
-  { href: "/mi-cocina/diario", label: "Diario" },
   { href: "/mi-cocina/despensa", label: "Despensa" },
   { href: "/mi-cocina/precios", label: "Precios" },
   { href: "/mi-cocina/compras", label: "Compras" },

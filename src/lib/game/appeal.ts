@@ -44,6 +44,7 @@ export interface AppealInput {
   prices: Record<string, number>; // precio de lo que tienes puesto en cada ranura (0 = lo básico)
   props: Record<string, string>; // adornos de hoy: lugar → adorno
   shown: number; // postres en la vitrina
+  stickers?: number; // puntos de las pegatinas pegadas en el local
 }
 
 export interface Appeal {
@@ -51,9 +52,10 @@ export interface Appeal {
   permanent: number;
   props: number;
   vitrina: number;
+  stickers: number;
 }
 
-export function appealOf({ prices, props, shown }: AppealInput): Appeal {
+export function appealOf({ prices, props, shown, stickers = 0 }: AppealInput): Appeal {
   let tiers = 0;
   for (const [slot, w] of Object.entries(WEIGHTS)) tiers += tierOf(prices[slot] ?? 0) * w;
   const permanent = Math.round((tiers / MAX_TIERS) * MAX_PERMANENT);
@@ -63,7 +65,7 @@ export function appealOf({ prices, props, shown }: AppealInput): Appeal {
   }, 0);
   const propsPts = Math.min(31, placed);
   const vitrina = Math.min(9, Math.round(Math.min(6, shown) * 1.5));
-  return { total: Math.min(100, permanent + propsPts + vitrina), permanent, props: propsPts, vitrina };
+  return { total: Math.min(100, permanent + propsPts + vitrina + stickers), permanent, props: propsPts, vitrina, stickers };
 }
 
 export const appealLabel = (t: number) => (t >= 80 ? "Irresistible" : t >= 60 ? "Hermoso" : t >= 35 ? "Bonito" : t >= 15 ? "Acogedor" : "Sencillo");

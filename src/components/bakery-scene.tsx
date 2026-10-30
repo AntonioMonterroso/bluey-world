@@ -8,6 +8,8 @@ import { MENU_ICONS } from "@/lib/bakery";
 import { eventIcon } from "@/lib/event-icons";
 import { PROP_ICONS } from "@/lib/prop-icons";
 import { propById } from "@/lib/game/appeal";
+import { STICKER_ITEMS } from "@/lib/game/shop";
+import type { PlacedSticker } from "@/lib/game/stickers";
 import { getCharacter } from "@/lib/characters";
 import { equipped } from "@/lib/game/decor";
 import type { MenuItem } from "@/lib/db/db";
@@ -56,9 +58,24 @@ function Lights({ kind, color }: { kind: string; color: string }) {
   return null;
 }
 
+/** Una pegatina troquelada (borde blanco, un poco girada), como las de una vitrina de verdad. */
+export function StickerBadge({ id, r = 0, size = 7, selected, className, style }: { id: string; r?: number; size?: number; selected?: boolean; className?: string; style?: React.CSSProperties }) {
+  const item = STICKER_ITEMS.find((s) => s.id === id);
+  const Icon = item?.icon;
+  if (!Icon) return null;
+  return (
+    <span
+      className={cn("flex items-center justify-center rounded-full bg-white text-primary shadow-[0_0.4cqw_0.8cqw_rgba(0,0,0,0.18)]", selected && "ring-[0.6cqw] ring-primary", className)}
+      style={{ ...sq(size), border: `${cq(size * 0.09)} solid white`, outline: `${cq(size * 0.03)} solid color-mix(in oklab, var(--primary) 35%, transparent)`, transform: `rotate(${r}deg)`, ...style }}
+    >
+      <Icon style={sq(size * 0.58)} aria-hidden />
+    </span>
+  );
+}
+
 /** Dibujo de la pastelería con lo que tienes puesto, tu personaje detrás del mostrador y tu menú en la vitrina. */
 export function BakeryScene({
-  name, decor, menu, character, staff = [], staffOutfits = {}, outfit, event, visitors = [], pops = [], daylight, todayProps = {}, className,
+  name, decor, menu, character, staff = [], staffOutfits = {}, outfit, event, visitors = [], pops = [], daylight, todayProps = {}, stickers = [], className,
 }: {
   name: string;
   decor: Record<string, string>;
@@ -72,6 +89,7 @@ export function BakeryScene({
   pops?: ScenePop[]; // montos que saltan al cobrar
   daylight?: number; // 0 (abre) a 1 (cierra): cambia la luz del día
   todayProps?: Record<string, string>; // adornos de hoy: lugar → adorno
+  stickers?: PlacedSticker[]; // pegatinas pegadas en el local
   className?: string;
 }) {
   const wall = equipped(decor, "wall");
@@ -210,6 +228,11 @@ export function BakeryScene({
         };
         return Icon ? <Icon key={spot} className="absolute z-10 text-primary drop-shadow" style={{ ...pos[spot], ...sq(5) }} aria-label={prop.name} /> : null;
       })}
+
+      {/* Pegatinas */}
+      {stickers.map((s, i) => (
+        <StickerBadge key={`${s.id}-${i}`} id={s.id} r={s.r} className="absolute z-10" style={{ left: `calc(${s.x}% - 3.5cqw)`, top: `calc(${s.y}% - 3.5cqw)` }} />
+      ))}
 
       {/* Clientes y avisos */}
       <AnimatePresence>

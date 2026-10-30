@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChefHat, Gamepad2, Home, Settings, Wallet } from "lucide-react";
+import { BookHeart, ChefHat, Gamepad2, Home, Settings, Wallet } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { SyncBadge } from "@/components/sync-badge";
@@ -20,6 +20,7 @@ import { useSyncStatus } from "@/lib/db/sync-status";
 const NAV = [
   { href: "/", label: "Inicio", icon: Home },
   { href: "/recetas", label: "Cocina", icon: ChefHat },
+  { href: "/diario", label: "Diario", icon: BookHeart },
   { href: "/dinero", label: "Dinero", icon: Wallet },
   { href: "/jugar", label: "Jugar", icon: Gamepad2 },
 ] as const;
@@ -27,6 +28,7 @@ const NAV = [
 // Qué rutas pertenecen a cada sección (para marcarla como activa).
 const SECTIONS: Record<string, string[]> = {
   "/recetas": ["/recetas", "/cocinar", "/temporizadores", "/mi-cocina"],
+  "/diario": ["/diario"],
   "/dinero": ["/dinero"],
   "/jugar": ["/jugar", "/bingo", "/logros", "/tienda", "/vestuario", "/pasteleria"],
 };

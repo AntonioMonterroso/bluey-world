@@ -11,7 +11,7 @@ export interface Tweak {
 }
 
 export const DEFAULT_TWEAK: Tweak = { c: null, x: 0, y: 0, s: 1, r: 0 };
-export const TWEAK_LIMITS = { x: [-20, 20], y: [-20, 20], s: [0.5, 1.8], r: [-45, 45] } as const;
+export const TWEAK_LIMITS = { x: [-45, 45], y: [-45, 45], s: [0.3, 3], r: [-180, 180] } as const;
 
 const clamp = (v: number, [lo, hi]: readonly [number, number]) => Math.min(hi, Math.max(lo, v));
 const round = (v: number, d = 2) => Math.round(v * 10 ** d) / 10 ** d;

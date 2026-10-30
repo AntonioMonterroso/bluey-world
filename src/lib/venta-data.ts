@@ -12,6 +12,8 @@ import type { BakeryDay, BakeryStaff, CookLog, MenuItem, Recipe, Regular, Specia
 import { useProfile } from "@/lib/db/profile";
 import { appealOf, appealEffects, type Appeal } from "@/lib/game/appeal";
 import { SLOTS, equipped } from "@/lib/game/decor";
+import { STICKER_ITEMS } from "@/lib/game/shop";
+import { favoriteOfDay, stickerPoints } from "@/lib/game/stickers";
 import { dayKey, dayStart } from "@/lib/game/engine";
 import { qualityMap, reputationOf, shiftsLeft, stockMap } from "@/lib/game/sales";
 import { onDuty, type StaffLite } from "@/lib/game/team";
@@ -81,7 +83,8 @@ export function useVentaData(): VentaData | undefined {
     }
     const active = menu.filter((m) => m.active);
     const prices = Object.fromEntries(SLOTS.map((s) => [s.id, equipped(bakery.decor, s.id).price]));
-    const appeal = appealOf({ prices, props: dayPlan, shown: active.length });
+    const fav = favoriteOfDay(STICKER_ITEMS.map((s) => s.id), day);
+    const appeal = appealOf({ prices, props: dayPlan, shown: active.length, stickers: stickerPoints(bakery.stickers, fav).total });
     const taken = new Set([profile.character, ...staff.map((x) => x.char)]);
     return {
       day, bakery, profile, menu, active, recipes, cookLogs, days, staff,

@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 
 const dayLabel = (ms: number) => new Date(ms).toLocaleDateString("es", { weekday: "short", day: "numeric", month: "long", year: "numeric" });
 
-function EntryForm({ log, onClose }: { log: CookLog; onClose: () => void }) {
+export function EntryForm({ log, onClose }: { log: CookLog; onClose: () => void }) {
   const [rating, setRating] = useState(log.rating ?? 0);
   const [notes, setNotes] = useState(log.notes);
   const [change, setChange] = useState(log.change ?? "");

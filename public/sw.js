@@ -1,5 +1,5 @@
 // Service worker de Bluey World: la app abre y funciona sin internet.
-const VERSION = "v4";
+const VERSION = "v5";
 // Carpeta donde vive la app (vacía en local; "/bluey-world" en GitHub Pages). Sale del alcance del service worker.
 const BASE = new URL(self.registration.scope).pathname.replace(/\/$/, "");
 const STATIC = `bw-static-${VERSION}`;

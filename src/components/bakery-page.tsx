@@ -46,7 +46,7 @@ export function BakeryPage() {
   return (
     <div className="flex max-w-4xl flex-col gap-6">
       <h1 className="text-4xl">{bakery.name}</h1>
-      <BakeryScene name={bakery.name} decor={bakery.decor} menu={menu} character={profile.character} outfit={profile.outfit} event={ev ? { name: ev.def.name, icon: ev.def.icon } : undefined} />
+      <BakeryScene name={bakery.name} decor={bakery.decor} stickers={bakery.stickers} menu={menu} character={profile.character} outfit={profile.outfit} event={ev ? { name: ev.def.name, icon: ev.def.icon } : undefined} />
 
       <NameForm key={bakery.updated_at} initial={bakery.name} />
 

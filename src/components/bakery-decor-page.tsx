@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Cake, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ART_ICON, BakeryScene, PLANT_ICON } from "@/components/bakery-scene";
+import { ART_ICON, PLANT_ICON } from "@/components/bakery-scene";
+import { StickerEditor } from "@/components/sticker-editor";
 import { setDecor, useBakery, useMenu } from "@/lib/bakery";
 import { useProfile } from "@/lib/db/profile";
 import { DECOR_ITEMS, SLOTS, equipped, type DecorItem } from "@/lib/game/decor";
@@ -56,9 +57,7 @@ export function BakeryDecorPage() {
         </p>
       </div>
 
-      <div className="sticky top-2 z-20">
-        <BakeryScene name={bakery.name} decor={bakery.decor} menu={menu} character={profile.character} outfit={profile.outfit} className="shadow-md" />
-      </div>
+      <StickerEditor bakery={bakery} menu={menu} character={profile.character} outfit={profile.outfit} owned={g.ownedIds} />
       <p role="status" className="min-h-6 text-sm font-semibold text-primary">{message}</p>
 
       {SLOTS.map((slot) => {

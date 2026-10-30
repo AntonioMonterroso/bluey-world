@@ -7,10 +7,10 @@ import { cn } from "@/lib/utils";
 
 type Axis = "x" | "y" | "s" | "r";
 const AXES: { id: Axis; label: string; step: number; unit: string; show: (v: number) => string }[] = [
-  { id: "x", label: "Mover a los lados", step: 0.5, unit: "◀ ▶", show: (v) => `${v > 0 ? "+" : ""}${v}` },
-  { id: "y", label: "Mover arriba o abajo", step: 0.5, unit: "▲ ▼", show: (v) => `${v > 0 ? "+" : ""}${v}` },
+  { id: "x", label: "Mover a los lados", step: 1, unit: "◀ ▶", show: (v) => `${v > 0 ? "+" : ""}${v}` },
+  { id: "y", label: "Mover arriba o abajo", step: 1, unit: "▲ ▼", show: (v) => `${v > 0 ? "+" : ""}${v}` },
   { id: "s", label: "Tamaño", step: 0.05, unit: "", show: (v) => `${Math.round(v * 100)} %` },
-  { id: "r", label: "Girar", step: 1, unit: "°", show: (v) => `${v > 0 ? "+" : ""}${v}°` },
+  { id: "r", label: "Girar", step: 5, unit: "°", show: (v) => `${v > 0 ? "+" : ""}${v}°` },
 ];
 
 /** Colores y ajustes finos de una prenda que ya tienes puesta. `value` es la prenda tal como se guarda. */

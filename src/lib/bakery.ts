@@ -35,7 +35,7 @@ export function useBakery() {
   return { ready: row !== undefined, bakery };
 }
 
-export async function saveBakery(patch: Partial<Pick<Bakery, "name" | "decor">>) {
+export async function saveBakery(patch: Partial<Pick<Bakery, "name" | "decor" | "stickers">>) {
   const current = (await db.bakery.get(BAKERY_ID)) ?? { id: BAKERY_ID, name: BRAND.tycoon, decor: {} };
   await upsertRow<Bakery>("bakery", { ...current, ...patch, id: BAKERY_ID });
 }

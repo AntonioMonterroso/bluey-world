@@ -138,3 +138,25 @@ export function dueSoon(recurring: Recurring[], now: number, horizonDays: number
     .filter((r) => r.active && daysUntil(r.next_due, now) <= horizonDays)
     .sort((a, b) => a.next_due - b.next_due);
 }
+
+/** Cuánto te queda libre de verdad en los próximos días: lo que tienes + lo que vas a cobrar − lo que vas a pagar (fijos). */
+export function freeAhead(position: Position, recurring: Recurring[], now: number, days = 30) {
+  let pay = 0;
+  let get = 0;
+  for (const r of recurring) {
+    const total = r.amount * occurrences(r, 0, now + days * DAY).length; // incluye lo atrasado
+    if (r.kind === "gasto") pay += total; else get += total;
+  }
+  return { pay, get, free: Math.round((position.cash + get - pay) * 100) / 100 };
+}
+
+/** Ingresos, gastos y lo que quedó en cada uno de los últimos `count` meses (del más viejo al actual). */
+export function lastMonths(moves: Expense[], now: number, count: number) {
+  const d = new Date(now);
+  return Array.from({ length: count }, (_, k) => {
+    const from = new Date(d.getFullYear(), d.getMonth() - (count - 1 - k), 1).getTime();
+    const to = new Date(d.getFullYear(), d.getMonth() - (count - 2 - k), 1).getTime();
+    const t = totalsOf(moves, from, to);
+    return { from, income: t.income, spent: t.spent, net: t.net };
+  });
+}

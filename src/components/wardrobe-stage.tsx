@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import { Maximize2, RotateCw } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Maximize2, Minus, Plus, RotateCcw, RotateCw } from "lucide-react";
 import { DressedImage } from "@/components/dressed-image";
 import { parseWear, withTweak } from "@/lib/game/outfit";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ type Mode =
   | { kind: "rotate"; slot: string; value: string; cx: number; cy: number; a0: number }
   | { kind: "pinch"; slot: string; value: string; d0: number; a0: number };
 
+const MIN_BOX = 64;
 const dist = (ax: number, ay: number, bx: number, by: number) => Math.hypot(bx - ax, by - ay);
 const angle = (ax: number, ay: number, bx: number, by: number) => (Math.atan2(by - ay, bx - ax) * 180) / Math.PI;
 
@@ -50,7 +51,9 @@ export function WardrobeStage({
     if (!stage || !g || !active) { setBox(null); return; }
     const s = stage.getBoundingClientRect();
     const r = g.getBoundingClientRect();
-    setBox({ left: r.left - s.left, top: r.top - s.top, width: r.width, height: r.height });
+    // Un marco mínimo, para que las asas nunca tapen una prenda pequeña (un lazo, unos lentes).
+    const w = Math.max(r.width, MIN_BOX), h = Math.max(r.height, MIN_BOX);
+    setBox({ left: r.left - s.left - (w - r.width) / 2, top: r.top - s.top - (h - r.height) / 2, width: w, height: h });
   }, [slot, active, charId]);
 
   const unit = () => 100 / Math.max(1, stageRef.current?.querySelector<HTMLElement>("[data-dressed]")?.getBoundingClientRect().width ?? 1);
@@ -77,7 +80,7 @@ export function WardrobeStage({
     return best?.slot ?? null;
   }
 
-  function start(e: React.PointerEvent, handle?: "scale" | "rotate") {
+  function start(e: React.PointerEvent, handle?: "scale" | "rotate" | "move") {
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* algunos navegadores no dejan capturar un segundo dedo */ }
     if (pointers.current.size === 2 && active) {
@@ -85,15 +88,15 @@ export function WardrobeStage({
       mode.current = { kind: "pinch", slot, value: shown[slot], d0: dist(a.x, a.y, b.x, b.y), a0: angle(a.x, a.y, b.x, b.y) };
       return;
     }
-    if (handle && active) {
+    if (handle && handle !== "move" && active) {
       const c = center();
       if (!c) return;
       mode.current = handle === "scale"
-        ? { kind: "scale", slot, value: active, ...c, d0: Math.max(8, dist(c.cx, c.cy, e.clientX, e.clientY)) }
+        ? { kind: "scale", slot, value: active, ...c, d0: Math.max(40, dist(c.cx, c.cy, e.clientX, e.clientY)) }
         : { kind: "rotate", slot, value: active, ...c, a0: angle(c.cx, c.cy, e.clientX, e.clientY) };
       return;
     }
-    const picked = hit(e.clientX, e.clientY) ?? (active ? slot : null);
+    const picked = handle === "move" ? slot : hit(e.clientX, e.clientY) ?? (active ? slot : null);
     if (!picked || !shown[picked]) return;
     if (picked !== slot) onSelect(picked);
     mode.current = { kind: "move", slot: picked, value: shown[picked], px: e.clientX, py: e.clientY, k: unit() };
@@ -132,7 +135,44 @@ export function WardrobeStage({
     setLive(null);
   }
 
+  /** Botones de abajo: mover, agrandar o girar un poquito; si los dejas apretados, se repiten. */
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const valueRef = useRef<string | undefined>(undefined);
+  function nudge(patch: (t: ReturnType<typeof parseWear>["tweak"]) => Parameters<typeof withTweak>[1]) {
+    const v = valueRef.current;
+    if (!v) return;
+    const next = withTweak(v, patch(parseWear(v).tweak));
+    valueRef.current = next;
+    onChange(slot, next);
+  }
+  function hold(patch: Parameters<typeof nudge>[0]) {
+    return {
+      onPointerDown: (e: React.PointerEvent) => {
+        e.preventDefault();
+        valueRef.current = active;
+        nudge(patch);
+        stop();
+        timer.current = setInterval(() => nudge(patch), 120);
+      },
+      onPointerUp: stop, onPointerLeave: stop, onPointerCancel: stop,
+      onKeyDown: (e: React.KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); valueRef.current = active; nudge(patch); } },
+    };
+  }
+  function stop() { if (timer.current) clearInterval(timer.current); timer.current = null; }
+
+  const tools: { label: string; icon: React.ReactNode; patch: Parameters<typeof nudge>[0] }[] = [
+    { label: "Mover a la izquierda", icon: <ArrowLeft />, patch: (t) => ({ x: t.x - 1 }) },
+    { label: "Mover a la derecha", icon: <ArrowRight />, patch: (t) => ({ x: t.x + 1 }) },
+    { label: "Subir", icon: <ArrowUp />, patch: (t) => ({ y: t.y - 1 }) },
+    { label: "Bajar", icon: <ArrowDown />, patch: (t) => ({ y: t.y + 1 }) },
+    { label: "Achicar", icon: <Minus />, patch: (t) => ({ s: Math.round((t.s - 0.05) * 100) / 100 }) },
+    { label: "Agrandar", icon: <Plus />, patch: (t) => ({ s: Math.round((t.s + 0.05) * 100) / 100 }) },
+    { label: "Girar a la izquierda", icon: <RotateCcw />, patch: (t) => ({ r: t.r - 5 }) },
+    { label: "Girar a la derecha", icon: <RotateCw />, patch: (t) => ({ r: t.r + 5 }) },
+  ];
+
   return (
+    <div className="flex flex-col gap-2">
     <div
       ref={stageRef}
       tabIndex={0}
@@ -167,6 +207,13 @@ export function WardrobeStage({
 
       {box && (
         <div aria-hidden className="pointer-events-none absolute rounded-xl border-2 border-dashed border-primary/70" style={{ left: box.left - 6, top: box.top - 6, width: box.width + 12, height: box.height + 12 }}>
+          <span
+            onPointerDown={(e) => { e.stopPropagation(); start(e, "move"); }}
+            onPointerMove={move}
+            onPointerUp={end}
+            onPointerCancel={end}
+            className="pointer-events-auto absolute inset-0 cursor-grab rounded-xl active:cursor-grabbing"
+          />
           <button
             type="button"
             tabIndex={-1}
@@ -174,9 +221,9 @@ export function WardrobeStage({
             onPointerMove={move}
             onPointerUp={end}
             onPointerCancel={end}
-            className="pointer-events-auto absolute -top-11 left-1/2 flex size-11 -translate-x-1/2 items-center justify-center"
+            className="pointer-events-auto absolute -top-12 left-1/2 flex size-11 -translate-x-1/2 items-center justify-center"
           >
-            <span className="flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground shadow"><RotateCw className="size-4" /></span>
+            <span className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow"><RotateCw className="size-4" /></span>
           </button>
           <button
             type="button"
@@ -185,12 +232,22 @@ export function WardrobeStage({
             onPointerMove={move}
             onPointerUp={end}
             onPointerCancel={end}
-            className="pointer-events-auto absolute -bottom-6 -right-6 flex size-11 items-center justify-center"
+            className="pointer-events-auto absolute -bottom-11 -right-11 flex size-11 items-center justify-center"
           >
-            <span className="flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground shadow"><Maximize2 className="size-3.5" /></span>
+            <span className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow"><Maximize2 className="size-4" /></span>
           </button>
         </div>
       )}
+    </div>
+    {active && (
+      <div role="toolbar" aria-label="Ajustar la prenda elegida" className="grid grid-cols-4 gap-1.5 rounded-3xl bg-card p-2 sm:grid-cols-8 md:grid-cols-4">
+        {tools.map((t) => (
+          <button key={t.label} type="button" aria-label={t.label} title={t.label} {...hold(t.patch)} className="flex h-11 touch-none items-center justify-center rounded-2xl bg-secondary text-foreground transition-transform duration-100 active:scale-[0.97] [&_svg]:size-5">
+            {t.icon}
+          </button>
+        ))}
+      </div>
+    )}
     </div>
   );
 }

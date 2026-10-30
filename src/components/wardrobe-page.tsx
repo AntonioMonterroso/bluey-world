@@ -158,7 +158,7 @@ function Inner() {
             label={`Probador de ${ch.name}. Toca una prenda para elegirla y arrástrala; usa las asas para agrandarla o girarla. Con teclado: flechas, + y −, [ y ].`}
           />
           <p className="text-center text-xs text-muted-foreground">
-            {Object.keys(outfit).length ? `Toca una prenda y arrástrala. Usa las asas para agrandarla o girarla (en el celular, también con dos dedos). Se recuerda para ${ch.name}.` : "Ponle algo, o arrastra una prenda del catálogo hasta el personaje."}
+            {Object.keys(outfit).length ? `Toca una prenda y arrástrala, o usa los botones de abajo (déjalos apretados para ir más rápido). Las asas la agrandan o la giran. Se recuerda para ${ch.name}.` : "Ponle algo, o arrastra una prenda del catálogo hasta el personaje."}
           </p>
           <p className="text-center text-sm font-semibold">{ch.name}{trying ? " · probando" : ""}</p>
           {!dressable && <p className="rounded-2xl border border-dashed bg-card p-3 text-sm text-muted-foreground">{ch.name} no se puede vestir porque son varios personajes juntos.</p>}

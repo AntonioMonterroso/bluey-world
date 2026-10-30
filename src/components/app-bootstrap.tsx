@@ -9,7 +9,7 @@ import { setSfxEnabled } from "@/lib/sfx";
 import { CHARACTERS } from "@/lib/characters";
 import { THEME_STORAGE_KEY } from "@/lib/themes";
 
-const ROUTES = ["/", "/ajustes", "/login", "/recetas", "/recetas/nueva", "/recetas/ver", "/recetas/editar", "/recetas/importar", "/cocinar", "/temporizadores", "/mi-cocina", "/mi-cocina/diario", "/mi-cocina/despensa", "/mi-cocina/precios", "/mi-cocina/compras", "/dinero", "/dinero/movimientos", "/dinero/recurrentes", "/dinero/cuentas", "/dinero/presupuesto", "/dinero/metas", "/bingo", "/logros", "/tienda", "/vestuario", "/pasteleria", "/pasteleria/menu", "/pasteleria/decorar", "/pasteleria/vender", "/pasteleria/ganancias", "/pasteleria/equipo", "/pasteleria/mejoras", "/pasteleria/eventos", "/jugar", "/jugar/clientes", "/jugar/venta", "/jugar/sala", "/jugar/historia"];
+const ROUTES = ["/", "/ajustes", "/login", "/recetas", "/recetas/nueva", "/recetas/ver", "/recetas/editar", "/recetas/importar", "/cocinar", "/temporizadores", "/mi-cocina", "/mi-cocina/diario", "/diario", "/mi-cocina/despensa", "/mi-cocina/precios", "/mi-cocina/compras", "/dinero", "/dinero/movimientos", "/dinero/recurrentes", "/dinero/cuentas", "/dinero/presupuesto", "/dinero/metas", "/bingo", "/logros", "/tienda", "/vestuario", "/pasteleria", "/pasteleria/menu", "/pasteleria/decorar", "/pasteleria/vender", "/pasteleria/ganancias", "/pasteleria/equipo", "/pasteleria/mejoras", "/pasteleria/eventos", "/jugar", "/jugar/clientes", "/jugar/venta", "/jugar/sala", "/jugar/historia"];
 
 /** Arranca la base local, la sincronización y el service worker; aplica el tema del perfil. */
 export function AppBootstrap() {

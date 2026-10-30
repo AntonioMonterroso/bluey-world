@@ -25,6 +25,8 @@ export interface Profile extends SyncRow {
   birthday?: string; // "MM-DD" (sin año)
   interest?: "cocina" | "dinero" | "juego"; // lo que más le gusta (ordena el Inicio)
   onboarded_at?: number; // cuándo terminó el registro inicial
+  journal_voice?: boolean; // en el diario, el personaje responde en voz alta
+  journal_char?: string; // quién la escucha en el diario (si no, su personaje)
 }
 
 /** Temporizador local (no se sincroniza). Se calcula con la hora de fin, así sobrevive a pantalla bloqueada. */
@@ -139,6 +141,7 @@ export interface BingoMark extends SyncRow {
 export interface Bakery extends SyncRow {
   name: string;
   decor: Record<string, string>;
+  stickers?: { id: string; x: number; y: number; r: number }[]; // pegatinas pegadas en el local (x, y en %)
 }
 
 /** Un postre del menú: de una receta que ya cocinaste, o inventado solo para el juego. */
@@ -229,6 +232,16 @@ export interface CookLog extends SyncRow {
   notes: string;
   photo: string | null;
   change?: string; // "qué cambiaría" la próxima vez
+}
+
+/** Lo que escribe (o dicta) en su diario y lo que le respondió el personaje que la escuchó. */
+export interface JournalEntry extends SyncRow {
+  at: number;
+  text: string;
+  mood: string; // feliz, emocionada, tranquila, cansada, triste, estresada, enojada
+  char: string; // quién la escuchó
+  reply: string; // lo que le respondió
+  topics?: string[]; // de qué habló (trabajo, familia, postres…), para recordarlo después
 }
 
 /** Meta de ahorro (ej. comprar una batidora): cuánto falta y para cuándo. */
@@ -370,6 +383,7 @@ export const SYNC_TABLES = [
   "accounts",
   "recurring",
   "mini_scores",
+  "journal",
 ] as const;
 export type SyncTable = (typeof SYNC_TABLES)[number];
 
@@ -403,6 +417,7 @@ class BlueyDB extends Dexie {
   accounts!: Table<Account, string>;
   recurring!: Table<Recurring, string>;
   mini_scores!: Table<MiniScore, string>;
+  journal!: Table<JournalEntry, string>;
   outbox!: Table<OutboxItem, number>;
   meta!: Table<Meta, string>;
 
@@ -465,6 +480,9 @@ class BlueyDB extends Dexie {
     this.version(14).stores({
       accounts: "id, updated_at",
       recurring: "id, next_due, updated_at",
+    });
+    this.version(16).stores({
+      journal: "id, at, updated_at",
     });
     this.version(15).stores({
       mini_scores: "id, updated_at",

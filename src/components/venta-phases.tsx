@@ -234,7 +234,7 @@ export function DecorarPhase({
   return (
     <div className="flex max-w-4xl flex-col gap-6">
       <BakeryScene
-        name={d.bakery.name} decor={d.bakery.decor} menu={d.active} character={d.profile.character} outfit={d.profile.outfit}
+        name={d.bakery.name} decor={d.bakery.decor} stickers={d.bakery.stickers} menu={d.active} character={d.profile.character} outfit={d.profile.outfit}
         staff={d.working.map((w) => w.char)} staffOutfits={d.staffOutfits} event={ev ? { name: ev.def.name, icon: ev.def.icon } : undefined} todayProps={d.dayPlan}
       />
 
@@ -247,7 +247,7 @@ export function DecorarPhase({
           <div className="h-full rounded-full bg-primary" style={{ width: `${d.appeal.total}%`, transition: "width 400ms cubic-bezier(0.23, 1, 0.32, 1)" }} />
         </div>
         <p className="text-sm text-muted-foreground">
-          Decoración permanente {d.appeal.permanent} · adornos de hoy {d.appeal.props} · vitrina {d.appeal.vitrina}. Llegan clientes {moreClients} % más seguido y las propinas suben {moreTips} %.
+          Decoración permanente {d.appeal.permanent} · adornos de hoy {d.appeal.props} · vitrina {d.appeal.vitrina}{d.appeal.stickers ? ` · pegatinas ${d.appeal.stickers}` : ""}. Llegan clientes {moreClients} % más seguido y las propinas suben {moreTips} %.
         </p>
         <Link href="/pasteleria/decorar" className="inline-flex min-h-11 w-fit items-center text-sm font-semibold text-primary underline underline-offset-4">Cambiar paredes, piso y muebles</Link>
       </section>
