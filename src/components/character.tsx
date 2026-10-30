@@ -1,6 +1,7 @@
 "use client";
 
 import { DressedImage } from "@/components/dressed-image";
+import { Mochito } from "@/components/mochito";
 import { useProfile } from "@/lib/db/profile";
 import { motion, useReducedMotion } from "motion/react";
 import { useState } from "react";
@@ -16,12 +17,14 @@ export function Character({
   interactive = true,
   priority = false,
   outfit,
+  buddy,
 }: {
   id: string;
   className?: string;
   interactive?: boolean;
   priority?: boolean;
   outfit?: Record<string, string>; // si no se pasa, usa tu ropa cuando es tu personaje
+  buddy?: boolean; // Mochito al lado (por defecto, cuando es tu personaje y se puede tocar)
 }) {
   const c = getCharacter(id);
   const reduce = useReducedMotion();
@@ -30,11 +33,19 @@ export function Character({
   const dress = outfit ?? (id === profile.character ? profile.outfit : undefined);
 
   const img = <DressedImage char={id} outfit={dress} priority={priority} className="h-full" imgClassName="drop-shadow-sm" />;
+  const withBuddy = buddy ?? (interactive && id === profile.character);
 
-  if (!interactive) return <div className={className}>{img}</div>;
+  if (!interactive) {
+    return withBuddy ? (
+      <div className={cn("inline-flex items-end", className)}>
+        <div className="h-full">{img}</div>
+        <Mochito interactive={false} className="-ml-[6%] h-[46%] shrink-0" />
+      </div>
+    ) : <div className={className}>{img}</div>;
+  }
 
-  return (
-    <div className={cn("relative inline-block", className)}>
+  const main = (
+    <div className={cn("relative inline-block", withBuddy ? "h-full" : className)}>
       <motion.button
         type="button"
         aria-label={`Acariciar a ${c.name}`}
@@ -64,6 +75,13 @@ export function Character({
       )}
     </div>
   );
+  if (!withBuddy) return main;
+  return (
+    <div className={cn("inline-flex items-end", className)}>
+      {main}
+      <Mochito className="-ml-[6%] h-[46%] shrink-0" />
+    </div>
+  );
 }
 
 const DANCE_KEYS = [
@@ -81,9 +99,10 @@ export function DancingCharacter({ id, className, outfit }: { id: string; classN
   const [spin, setSpin] = useState(0);
   const { profile } = useProfile();
   const dress = outfit ?? (id === profile.character ? profile.outfit : undefined);
+  const withBuddy = id === profile.character;
 
-  return (
-    <div className={cn("relative inline-block", className)}>
+  const main = (
+    <div className={cn("relative inline-block", withBuddy ? "h-full" : className)}>
       {!reduce &&
         [0, 1, 2].map((i) => (
           <motion.span
@@ -127,6 +146,13 @@ export function DancingCharacter({ id, className, outfit }: { id: string; classN
           <DressedImage char={id} outfit={dress} className="h-full" imgClassName="drop-shadow-sm" />
         </motion.span>
       </motion.button>
+    </div>
+  );
+  if (!withBuddy) return main;
+  return (
+    <div className={cn("inline-flex items-end", className)}>
+      {main}
+      <Mochito dance className="-ml-[6%] h-[46%] shrink-0" />
     </div>
   );
 }

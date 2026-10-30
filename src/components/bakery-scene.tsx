@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { Mochito } from "@/components/mochito";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { DressedImage } from "@/components/dressed-image";
 import { Cake, Check, Coins, Flower2, Utensils, Heart, Sprout, Star, TreePalm, type LucideIcon } from "lucide-react";
@@ -190,6 +191,9 @@ export function BakeryScene({
       <div className="absolute left-1/2 -translate-x-1/2" style={{ bottom: "30%", height: "48%" }}>
         <DressedImage char={character} outfit={outfit} alt="" className="h-full" />
       </div>
+
+      {/* Mochito, en el piso junto al mostrador */}
+      <Mochito interactive={false} className="absolute z-20" style={{ left: "16%", bottom: "2%", height: "22%" }} />
 
       {/* Mostrador con vitrina */}
       <div className="absolute z-10 left-[23%] w-[54%]" style={{ bottom: "6%", height: "35%" }}>

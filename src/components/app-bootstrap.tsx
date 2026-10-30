@@ -48,6 +48,7 @@ export function AppBootstrap() {
         urls: [
           ...ROUTES.map(asset),
           ...CHARACTERS.map((c) => c.src),
+          asset("/personajes/mochito.webp"),
           asset("/personajes/elenco.webp"),
           asset("/personajes/familia.webp"),
           asset("/personajes/bingo-bailando.webp"),

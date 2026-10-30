@@ -12,7 +12,7 @@ export function LevelCard() {
 
   return (
     <section aria-label="Tu nivel" className="flex items-center gap-5 rounded-[2rem] border bg-card p-5">
-      <Character id={profile.character} interactive={false} className="h-24 shrink-0" />
+      <Character id={profile.character} interactive={false} buddy className="h-24 shrink-0" />
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex flex-wrap items-baseline justify-between gap-x-3">
           <p className="font-heading text-2xl">Nivel {g.level} · {g.title}</p>

@@ -25,6 +25,9 @@ export const CHARACTERS = [
   { id: "bluey-chica", name: "Bluey pequeña", src: BASE + "/personajes/bluey-chica.webp", w: 310, h: 507 },
 ] as const;
 
+/** El compañero que siempre va con tu personaje (no se elige como personaje principal). */
+export const MOCHITO = { id: "mochito", name: "Mochito", src: BASE + "/personajes/mochito.webp", w: 254, h: 364 } as const;
+
 export type CharacterId = (typeof CHARACTERS)[number]["id"];
 export const DEFAULT_CHARACTER: CharacterId = "bluey";
 export const CHARACTER_STORAGE_KEY = "bw-character";

@@ -92,7 +92,7 @@ export function Onboarding() {
 
         <section className="grid items-end gap-4 sm:grid-cols-[10rem_1fr]">
           <div className="flex justify-center">
-            {step === "listo" ? <Character id={char} interactive={false} className="h-44" /> : <Image src={sp.src} alt="" width={sp.w} height={sp.h} priority className="h-44 w-auto object-contain" />}
+            {step === "listo" ? <Character id={char} interactive={false} buddy className="h-44" /> : <Image src={sp.src} alt="" width={sp.w} height={sp.h} priority className="h-44 w-auto object-contain" />}
           </div>
           <div className="relative rounded-[2rem] border bg-card p-5 text-lg leading-relaxed">
             <p className="mb-1 text-sm font-semibold text-primary">{sp.name}</p>

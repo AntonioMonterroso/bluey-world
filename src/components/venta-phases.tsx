@@ -247,7 +247,7 @@ export function DecorarPhase({
           <div className="h-full rounded-full bg-primary" style={{ width: `${d.appeal.total}%`, transition: "width 400ms cubic-bezier(0.23, 1, 0.32, 1)" }} />
         </div>
         <p className="text-sm text-muted-foreground">
-          Decoración permanente {d.appeal.permanent} · adornos de hoy {d.appeal.props} · vitrina {d.appeal.vitrina}{d.appeal.stickers ? ` · pegatinas ${d.appeal.stickers}` : ""}. Llegan clientes {moreClients} % más seguido y las propinas suben {moreTips} %.
+          Decoración permanente {d.appeal.permanent} · adornos de hoy {d.appeal.props} · vitrina {d.appeal.vitrina}{d.appeal.stickers ? ` · pegatinas ${d.appeal.stickers}` : ""}{d.appeal.mochito ? ` · Mochito saluda ${d.appeal.mochito}` : ""}. Llegan clientes {moreClients} % más seguido y las propinas suben {moreTips} %.
         </p>
         <Link href="/pasteleria/decorar" className="inline-flex min-h-11 w-fit items-center text-sm font-semibold text-primary underline underline-offset-4">Cambiar paredes, piso y muebles</Link>
       </section>

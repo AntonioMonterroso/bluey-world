@@ -3,6 +3,7 @@ import { AccountCard } from "@/components/account-card";
 import { BackupCard } from "@/components/backup-card";
 import { CharacterPicker } from "@/components/character-picker";
 import { CurrencyField } from "@/components/currency-field";
+import { MochitoToggle } from "@/components/mochito-toggle";
 import { NameField } from "@/components/name-field";
 import { ProfileExtras } from "@/components/profile-extras";
 import { ThemePicker } from "@/components/theme-picker";
@@ -35,6 +36,7 @@ export default function Page() {
       <section aria-labelledby="personaje" className="flex flex-col gap-3">
         <h2 id="personaje" className="text-2xl">Tu personaje</h2>
         <CharacterPicker />
+        <MochitoToggle />
       </section>
 
       <section aria-labelledby="paleta" className="flex flex-col gap-3">

@@ -73,3 +73,17 @@ describe("pegatinas en el local", () => {
     expect(stickerPoints(fiestas, "sticker:pino").total).toBe(15);
   });
 });
+
+describe("Mochito", () => {
+  it("dice una frase según la hora y suma encanto en el local", async () => {
+    const { mochitoLine, MOCHITO_APPEAL } = await import("@/lib/mochito");
+    const { appealOf } = await import("@/lib/game/appeal");
+    expect(mochitoLine(8, 0)).toMatch(/Buenos días/);
+    expect(mochitoLine(2, 0)).toMatch(/tarde/);
+    expect(typeof mochitoLine(15, 0.999)).toBe("string");
+    const base = appealOf({ prices: {}, props: {}, shown: 0 });
+    const withDog = appealOf({ prices: {}, props: {}, shown: 0, mochito: true });
+    expect(withDog.total - base.total).toBe(MOCHITO_APPEAL);
+    expect(withDog.mochito).toBe(MOCHITO_APPEAL);
+  });
+});

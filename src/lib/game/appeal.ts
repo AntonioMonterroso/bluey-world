@@ -1,5 +1,7 @@
 // Atractivo del local y adornos del día. Lógica pura.
 
+import { MOCHITO_APPEAL } from "@/lib/mochito";
+
 export type Spot = "colgante" | "mostrador" | "entrada" | "mesas";
 
 export const SPOTS: { id: Spot; label: string }[] = [
@@ -45,6 +47,7 @@ export interface AppealInput {
   props: Record<string, string>; // adornos de hoy: lugar → adorno
   shown: number; // postres en la vitrina
   stickers?: number; // puntos de las pegatinas pegadas en el local
+  mochito?: boolean; // Mochito está en el local saludando
 }
 
 export interface Appeal {
@@ -53,9 +56,10 @@ export interface Appeal {
   props: number;
   vitrina: number;
   stickers: number;
+  mochito: number;
 }
 
-export function appealOf({ prices, props, shown, stickers = 0 }: AppealInput): Appeal {
+export function appealOf({ prices, props, shown, stickers = 0, mochito = false }: AppealInput): Appeal {
   let tiers = 0;
   for (const [slot, w] of Object.entries(WEIGHTS)) tiers += tierOf(prices[slot] ?? 0) * w;
   const permanent = Math.round((tiers / MAX_TIERS) * MAX_PERMANENT);
@@ -65,7 +69,8 @@ export function appealOf({ prices, props, shown, stickers = 0 }: AppealInput): A
   }, 0);
   const propsPts = Math.min(31, placed);
   const vitrina = Math.min(9, Math.round(Math.min(6, shown) * 1.5));
-  return { total: Math.min(100, permanent + propsPts + vitrina + stickers), permanent, props: propsPts, vitrina, stickers };
+  const dog = mochito ? MOCHITO_APPEAL : 0;
+  return { total: Math.min(100, permanent + propsPts + vitrina + stickers + dog), permanent, props: propsPts, vitrina, stickers, mochito: dog };
 }
 
 export const appealLabel = (t: number) => (t >= 80 ? "Irresistible" : t >= 60 ? "Hermoso" : t >= 35 ? "Bonito" : t >= 15 ? "Acogedor" : "Sencillo");

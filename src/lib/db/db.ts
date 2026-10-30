@@ -27,6 +27,7 @@ export interface Profile extends SyncRow {
   onboarded_at?: number; // cuándo terminó el registro inicial
   journal_voice?: boolean; // en el diario, el personaje responde en voz alta
   journal_char?: string; // quién la escucha en el diario (si no, su personaje)
+  mochito?: boolean; // false = Mochito escondido (por defecto siempre acompaña)
 }
 
 /** Temporizador local (no se sincroniza). Se calcula con la hora de fin, así sobrevive a pantalla bloqueada. */

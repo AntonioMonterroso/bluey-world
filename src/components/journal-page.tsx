@@ -5,6 +5,7 @@ import {
   BatteryLow, CloudRain, Flame, Leaf, Lightbulb, Mic, MicOff, Pencil, PartyPopper, Search, Smile, Trash2, Volume2, VolumeX, Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Mochito } from "@/components/mochito";
 import { DressedImage } from "@/components/dressed-image";
 import { EntryForm } from "@/components/diary-page";
 import { Stars } from "@/components/stars";
@@ -143,6 +144,7 @@ function Inner() {
         <div className="flex flex-col items-center gap-2">
           <div className={cn("flex h-48 items-end justify-center", dictation.listening && "motion-safe:animate-pulse")}>
             <DressedImage char={shownChar} outfit={shownChar === profile.character ? profile.outfit : undefined} className="h-44" />
+            <Mochito className="-ml-4 h-20 shrink-0" bubble="right" />
           </div>
         </div>
         <div className="flex min-w-0 flex-col gap-4">

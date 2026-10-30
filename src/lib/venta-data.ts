@@ -84,7 +84,7 @@ export function useVentaData(): VentaData | undefined {
     const active = menu.filter((m) => m.active);
     const prices = Object.fromEntries(SLOTS.map((s) => [s.id, equipped(bakery.decor, s.id).price]));
     const fav = favoriteOfDay(STICKER_ITEMS.map((s) => s.id), day);
-    const appeal = appealOf({ prices, props: dayPlan, shown: active.length, stickers: stickerPoints(bakery.stickers, fav).total });
+    const appeal = appealOf({ prices, props: dayPlan, shown: active.length, stickers: stickerPoints(bakery.stickers, fav).total, mochito: profile.mochito !== false });
     const taken = new Set([profile.character, ...staff.map((x) => x.char)]);
     return {
       day, bakery, profile, menu, active, recipes, cookLogs, days, staff,
