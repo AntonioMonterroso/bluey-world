@@ -31,6 +31,9 @@ export interface Profile extends SyncRow {
   mochito_outfit?: Record<string, string>; // ropa de Mochito: ranura → artículo
   mochito_care?: { fed?: number; petted?: number; played?: number; washed?: number; muddy?: boolean }; // última vez que comió, lo acariciaste, jugó y se bañó; lodo del paseo
   mochito_friends?: Record<string, number>; // perritos del parque: cuántas veces se encontraron
+  mochito_log?: { d: string; e: string[] }[]; // su diario: lo que hicieron juntos cada día
+  mochito_gift?: { day?: string; streak?: number }; // regalo del día: último día abierto y racha
+  mochito_greet?: string; // último día que te dio los buenos días
   mochito_stats?: import("../mochito-play").MochitoStats; // nivel, cuentas y días que lo cuidaste
   mochito_tricks?: string[]; // trucos que ya aprendió
   mochito_home?: { bed?: string; bowl?: string; toy?: string }; // sus cosas puestas (ids de la tienda)

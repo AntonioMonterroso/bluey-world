@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { motion, useReducedMotion } from "motion/react";
-import { Droplets, Gamepad2, Heart, Moon, Smile, UtensilsCrossed } from "lucide-react";
-import { DressedImage } from "@/components/dressed-image";
+import { Droplets, Gamepad2, Gift, Heart, Moon, Smile, UtensilsCrossed } from "lucide-react";
+import { MochitoFigure } from "@/components/mochito-figure";
 import { MochitoPanel } from "@/components/mochito-panel";
 import { MochitoHome } from "@/components/mochito-things";
 import { PuppyArt } from "@/components/puppy-art";
 import { visitorOf } from "@/lib/mochito-play";
+import { festiveOf, giftOpened, isNight, mochitoBirthday } from "@/lib/mochito-life";
 import { db } from "@/lib/db/db";
 import { useProfile } from "@/lib/db/profile";
 import type { DidKind } from "@/lib/mochito-lines";
@@ -81,7 +82,10 @@ export function Mochito({ className, style, interactive = true, dance = false, h
 
   if (!on) return null;
 
-  const img = <DressedImage char="mochito" outfit={profile.mochito_outfit} alt="" className="h-full" imgClassName="drop-shadow-sm" />;
+  const bday = mochitoBirthday(profile.mochito_stats?.days, now);
+  const festive = festiveOf(now, !!bday?.isToday);
+  const sleeping = isNight(now) && !dance;
+  const img = <MochitoFigure outfit={profile.mochito_outfit} festive={festive} sleeping={sleeping} />;
   if (!interactive) {
     const visitor = home ? visitorOf(profile.mochito_friends, now) : null;
     return (
@@ -96,17 +100,18 @@ export function Mochito({ className, style, interactive = true, dance = false, h
   const MoodIcon = MOOD_ICON[state.mood];
   const urgent = news.some((n) => n.urgent);
   const badge = news.length > 0;
+  const gift = !giftOpened(profile.mochito_gift, now);
 
   return (
     <div className={cn("relative inline-block", className)} style={style}>
       <motion.button
         type="button"
-        aria-label={`Abrir el rincón de Mochito. Está ${MOOD_LABEL[state.mood].toLowerCase()}${badge ? `, tiene ${news.length} ${news.length === 1 ? "aviso" : "avisos"}` : ""}`}
+        aria-label={`Abrir el rincón de Mochito. Está ${MOOD_LABEL[state.mood].toLowerCase()}${badge ? `, tiene ${news.length} ${news.length === 1 ? "aviso" : "avisos"}` : ""}${gift ? ", tiene un regalo para ti" : ""}`}
         onClick={() => { setNow(Date.now()); setTaps((n) => n + 1); setOpen(true); sfx("click"); }}
         style={{ transformOrigin: "50% 100%" }}
         className="h-full cursor-pointer rounded-3xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
-        animate={reduce ? undefined : { transform: dance ? DANCE : ["rotate(-2deg)", "rotate(2deg)", "rotate(-2deg)"] }}
-        transition={{ duration: dance ? 0.6 : 2.6, repeat: Infinity, ease: [0.45, 0, 0.55, 1] }}
+        animate={reduce ? undefined : { transform: dance ? DANCE : sleeping ? ["scaleY(1)", "scaleY(0.97)", "scaleY(1)"] : ["rotate(-2deg)", "rotate(2deg)", "rotate(-2deg)"] }}
+        transition={{ duration: dance ? 0.6 : sleeping ? 3.6 : 2.6, repeat: Infinity, ease: [0.45, 0, 0.55, 1] }}
       >
         <motion.span
           key={taps}
@@ -118,8 +123,8 @@ export function Mochito({ className, style, interactive = true, dance = false, h
           {img}
         </motion.span>
       </motion.button>
-      <span aria-hidden className={cn("pointer-events-none absolute -top-1 right-0 flex size-6 items-center justify-center rounded-full shadow", badge ? (urgent ? "bg-destructive text-white" : "bg-primary text-primary-foreground") : "bg-card text-primary")}>
-        {badge ? <span className="text-[11px] font-bold tabular-nums">{news.length}</span> : <MoodIcon className="size-3.5" />}
+      <span aria-hidden className={cn("pointer-events-none absolute -top-1 right-0 flex size-6 items-center justify-center rounded-full shadow", badge ? (urgent ? "bg-destructive text-white" : "bg-primary text-primary-foreground") : gift ? "bg-[var(--gold)] text-foreground" : "bg-card text-primary")}>
+        {badge ? <span className="text-[11px] font-bold tabular-nums">{news.length}</span> : gift ? <Gift className="size-3.5" /> : <MoodIcon className="size-3.5" />}
       </span>
       <MochitoPanel open={open} onOpenChange={setOpen} now={now} news={news} />
     </div>

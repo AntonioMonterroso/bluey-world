@@ -6,9 +6,21 @@ import { upsertRow } from "@/lib/db/repo";
 import { dayKey } from "@/lib/game/engine";
 import { writeAwards } from "@/lib/game/use-game";
 import { WEAR_ITEMS } from "@/lib/game/wardrobe";
-import { EMPTY_STATS, FRIEND_AT, applyCare, earnedMedals, friendsOf, medalEventId, mochitoLevel, walkFind, walkMeet, type CareKind, type Friend, type WalkFind } from "@/lib/mochito-play";
+import { PET_ITEMS } from "@/lib/game/shop";
+import { BIRTHDAY_GIFT, appendLog, giftFor, giftOpened, logLine, mochitoBirthday, nextStreak, type LogEvent } from "@/lib/mochito-life";
+import { EMPTY_STATS, FRIENDS, FRIEND_AT, TRICKS, applyCare, earnedMedals, friendsOf, medalEventId, mochitoLevel, walkFind, walkMeet, type CareKind, type Friend, type WalkFind } from "@/lib/mochito-play";
 
 const thingsOf = (home: { bed?: string; bowl?: string; toy?: string } | undefined) => [home?.bed, home?.bowl, home?.toy].filter(Boolean).length;
+
+/** Anota recuerdos en el diario de Mochito. */
+export async function mochitoLog(...events: LogEvent[]) {
+  if (!events.length) return;
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  let log = p.mochito_log;
+  const now = Date.now();
+  for (const ev of events) log = appendLog(log, now, logLine(ev));
+  await updateProfile({ mochito_log: log });
+}
 
 /** Paga las medallas nuevas (los ids son fijos, así que nunca se cobran dos veces). */
 async function payMedals() {
@@ -24,7 +36,7 @@ async function payMedals() {
 }
 
 /** Lo que haces con Mochito: suma a su nivel, a sus barras y revisa si ganó una medalla. Devuelve el nivel antes y después. */
-export async function mochitoDo(kind: CareKind, extra: { trick?: string; friend?: string } = {}) {
+export async function mochitoDo(kind: CareKind, extra: { trick?: string; friend?: string; game?: string } = {}) {
   const now = Date.now();
   const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
   const care = p.mochito_care ?? {};
@@ -38,9 +50,18 @@ export async function mochitoDo(kind: CareKind, extra: { trick?: string; friend?
   if (kind === "bath") patch.mochito_care = { ...care, washed: now, muddy: false };
   if (kind === "walk" && extra.friend) patch.mochito_friends = { ...p.mochito_friends, [extra.friend]: (p.mochito_friends?.[extra.friend] ?? 0) + 1 };
   if (kind === "trick" && extra.trick) patch.mochito_tricks = [...new Set([...(p.mochito_tricks ?? []), extra.trick])];
+  const friend = extra.friend ? FRIENDS.find((f) => f.id === extra.friend) : undefined;
+  const ev: LogEvent | null =
+    kind === "pet" ? { kind: "pet" } : kind === "treat" ? { kind: "treat" } : kind === "bath" ? { kind: "bath" } : kind === "photo" ? { kind: "photo" }
+    : kind === "game" ? { kind: "game", game: extra.game }
+    : kind === "walk" ? { kind: "walk", friend: friend?.name, newFriend: !!friend && (p.mochito_friends?.[friend.id] ?? 0) + 1 === FRIEND_AT }
+    : kind === "trick" && extra.trick ? { kind: "trick", name: TRICKS.find((t) => t.id === extra.trick)?.name ?? extra.trick } : null;
+  if (ev) patch.mochito_log = appendLog(p.mochito_log, now, logLine(ev));
   await updateProfile(patch);
   const medals = await payMedals();
-  return { before, after: mochitoLevel(stats.xp).level, medals };
+  const after = mochitoLevel(stats.xp).level;
+  await mochitoLog(...medals.map((name): LogEvent => ({ kind: "medal", name })), ...(after > before ? [{ kind: "level", level: after } as LogEvent] : []));
+  return { before, after, medals };
 }
 
 /** El paseo del día: una vez al día, encuentra algo, a veces un amiguito, y regresa con lodo. */
@@ -74,6 +95,38 @@ export { FRIEND_AT };
 /** Pone (o quita) una de sus cosas: cama, platito o juguete. */
 export async function setMochitoThing(slot: "bed" | "bowl" | "toy", id: string | undefined) {
   const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
-  await updateProfile({ mochito_home: { ...p.mochito_home, [slot]: id } });
-  return payMedals();
+  const item = id ? PET_ITEMS.find((i) => i.id === id) : undefined;
+  await updateProfile({ mochito_home: { ...p.mochito_home, [slot]: id }, ...(item ? { mochito_log: appendLog(p.mochito_log, Date.now(), logLine({ kind: "thing", name: item.name })) } : {}) });
+  const medals = await payMedals();
+  await mochitoLog(...medals.map((name): LogEvent => ({ kind: "medal", name })));
+  return medals;
 }
+
+/** Abre el regalo del día: monedas según la racha (con bonos a los 7 y 30 días). */
+export async function openDailyGift() {
+  const now = Date.now();
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (giftOpened(p.mochito_gift, now)) return null;
+  const streak = nextStreak(p.mochito_gift, now);
+  const gift = giftFor(streak);
+  const day = dayKey(now);
+  await updateProfile({ mochito_gift: { day, streak }, mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "gift", coins: gift.coins })) });
+  await writeAwards([{ id: `mochito-regalo:${day}`, kind: "mochito", label: `Regalo de Mochito (racha de ${streak})`, xp: 0, coins: gift.coins, at: now }], await db.game_events.toArray());
+  return { ...gift, streak };
+}
+
+/** Si hoy es su cumpleaños, da su regalo una sola vez al año. */
+export async function claimBirthday() {
+  const now = Date.now();
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  const b = mochitoBirthday(p.mochito_stats?.days, now);
+  if (!b?.isToday) return null;
+  const id = `mochito-cumple:${new Date(now).getFullYear()}`;
+  if (await db.game_events.get(id)) return null;
+  await writeAwards([{ id, kind: "mochito", label: `Cumpleaños de Mochito (${b.age} ${b.age === 1 ? "año" : "años"})`, xp: BIRTHDAY_GIFT.xp, coins: BIRTHDAY_GIFT.coins, at: now }], await db.game_events.toArray());
+  await mochitoLog({ kind: "birthday", age: b.age });
+  return b.age;
+}
+
+/** Marca que ya te dio los buenos días hoy. */
+export const markGreeted = () => updateProfile({ mochito_greet: dayKey(Date.now()) });

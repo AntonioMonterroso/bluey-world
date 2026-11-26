@@ -70,7 +70,7 @@ export function MochitoGame({ onExit, play = DEFAULT_PLAY }: { onExit: () => voi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [round]);
 
-  useEffect(() => { if (over) void mochitoDo("game"); }, [over]);
+  useEffect(() => { if (over) void mochitoDo("game", { game: "Galletas para Mochito" }); }, [over]);
 
   function moveTo(clientX: number) {
     const r = arena.current?.getBoundingClientRect();

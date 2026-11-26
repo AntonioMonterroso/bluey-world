@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { Award, Bath, Bell, Bone, Camera, Coins, Cookie, Dog, Droplets, Flower2, Footprints, Gamepad2, Hand, Heart, Home, Lock, Shirt, Sparkles, TreePine, Users, Wand2 } from "lucide-react";
+import { Award, BookHeart, Cake, Gift, Moon, Bath, Bell, Bone, Camera, Coins, Cookie, Dog, Droplets, Flower2, Footprints, Gamepad2, Hand, Heart, Home, Lock, Shirt, Sparkles, TreePine, Users, Wand2 } from "lucide-react";
 import { DressedImage } from "@/components/dressed-image";
+import { MochitoFigure } from "@/components/mochito-figure";
 import { goTo, type MochitoGoto } from "@/lib/mochito-goto";
 import { MochitoHome, ThingArt } from "@/components/mochito-things";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -14,7 +15,9 @@ import { buyItem, useGame } from "@/lib/game/use-game";
 import { MOOD_LABEL, actionLine, mochitoSays, mochitoState, type MochitoNews } from "@/lib/mochito";
 import { LEVEL_UP, MEDAL_WON, THING_NEW, TRICK_DONE, WALK_GO } from "@/lib/mochito-lines";
 import { useMochitoDid } from "@/components/mochito";
-import { mochitoDo, mochitoWalk, setMochitoThing } from "@/lib/mochito-actions";
+import { claimBirthday, markGreeted, mochitoDo, mochitoWalk, openDailyGift, setMochitoThing } from "@/lib/mochito-actions";
+import { BIRTHDAY_GIFT, MOCHITO_BDAY_LINES, festiveOf, giftFor, giftOpened, isMorning, isNight, logDayTitle, mochitoBirthday, morningLine, nextStreak, sleepyLine } from "@/lib/mochito-life";
+import { dayKey } from "@/lib/game/engine";
 import { EMPTY_STATS, FRIEND_AT, MEDALS, SCRUB_STEPS, TEACH_TRIES, TRICKS, earnedMedals, friendsOf, mochitoLevel, trickReady, walkedToday, type Friend, type WalkFind } from "@/lib/mochito-play";
 import { FriendsTab } from "@/components/mochito-friends";
 import { PhotoTab } from "@/components/mochito-photos";
@@ -25,7 +28,7 @@ import { cn } from "@/lib/utils";
 const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 const pickOf = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 
-type Tab = "cuidar" | "trucos" | "medallas" | "cosas" | "amigos" | "fotos";
+type Tab = "cuidar" | "trucos" | "medallas" | "cosas" | "amigos" | "fotos" | "diario";
 const TABS: { id: Tab; label: string; icon: typeof Heart }[] = [
   { id: "cuidar", label: "Cuidar", icon: Heart },
   { id: "trucos", label: "Trucos", icon: Wand2 },
@@ -33,6 +36,7 @@ const TABS: { id: Tab; label: string; icon: typeof Heart }[] = [
   { id: "cosas", label: "Sus cosas", icon: Home },
   { id: "amigos", label: "Amigos", icon: Users },
   { id: "fotos", label: "Fotos", icon: Camera },
+  { id: "diario", label: "Diario", icon: BookHeart },
 ];
 
 const GAMES: { goto: MochitoGoto; name: string; icon: typeof Bone }[] = [
@@ -41,6 +45,8 @@ const GAMES: { goto: MochitoGoto; name: string; icon: typeof Bone }[] = [
   { goto: "juego:escondidas", name: "Escondidas", icon: Sparkles },
   { goto: "juego:simon", name: "Simón dice", icon: Wand2 },
   { goto: "juego:carrera", name: "Carrera", icon: Footprints },
+  { goto: "juego:cocinam", name: "Cocinar", icon: Cookie },
+  { goto: "juego:memoriam", name: "Memoria", icon: Sparkles },
 ];
 
 function Bar({ label, value, icon: Icon }: { label: string; value: number; icon: typeof Heart }) {
@@ -79,7 +85,25 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
   const walkRef = useRef<{ arrived: boolean; find?: Awaited<ReturnType<typeof mochitoWalk>> }>({ arrived: false });
   const did = useMochitoDid(open ? now : 0);
   const ctx = { now, birthday: profile.birthday, did };
-  const said = line ?? (news[0]?.text ?? mochitoSays(state.mood, new Date(now).getHours(), (now % 997) / 997, ctx));
+  const bday = mochitoBirthday(stats.days, now);
+  const festive = festiveOf(now, !!bday?.isToday);
+  const sleeping = isNight(now);
+  const greet = isMorning(now) && profile.mochito_greet !== dayKey(now);
+  const said = line ?? (bday?.isToday ? MOCHITO_BDAY_LINES[now % MOCHITO_BDAY_LINES.length] : sleeping ? sleepyLine(0) : news[0]?.text ?? mochitoSays(state.mood, new Date(now).getHours(), (now % 997) / 997, ctx));
+  const [gifting, setGifting] = useState<{ coins: number; streak: number; bonus: number } | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    if (bday?.isToday) void claimBirthday().then((age) => { if (age) { sfx("success"); setLine(`¡Hoy cumplo ${age} ${age === 1 ? "año" : "años"}! Gracias por cuidarme. Te dejé un regalo: ${BIRTHDAY_GIFT.coins} monedas.`); } });
+    else if (greet) void markGreeted().then(() => setLine(morningLine(now)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+  async function gift() {
+    const r = await openDailyGift();
+    if (!r) return;
+    sfx("cash");
+    setGifting(r);
+    setLine(r.bonus ? `¡Racha de ${r.streak} días! Te traje un regalo especial: ${r.coins} monedas.` : `¡Toma! Te guardé ${r.coins} monedas. ${r.streak === 1 ? "Mañana vuelve por otro." : `Llevamos ${r.streak} días seguidos.`}`);
+  }
 
   async function after(kind: Parameters<typeof mochitoDo>[0], extra?: { trick?: string }) {
     const r = await mochitoDo(kind, extra);
@@ -89,7 +113,7 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
   function pet() {
     setHearts((n) => n + 1);
     sfx("success");
-    setLine(pickOf(actionLine.petted));
+    setLine(isNight(Date.now()) ? sleepyLine(hearts + 1) : pickOf(actionLine.petted));
     void after("pet");
   }
   function feed() {
@@ -147,7 +171,7 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
   const moving = move ? TRICK_MOVES[move.id] : null;
 
   return (
-    <Sheet open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setLine(null); setGames(false); setWalk(null); setBath(false); setTab("cuidar"); } }}>
+    <Sheet open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setLine(null); setGames(false); setWalk(null); setBath(false); setGifting(null); setTab("cuidar"); } }}>
       <SheetContent side="bottom" className="mx-auto max-h-[92dvh] w-full max-w-xl overflow-y-auto rounded-t-[2rem] p-5 pb-8">
         <SheetHeader className="p-0">
           <SheetTitle className="font-heading text-2xl">Mochito · Nivel {lvl.level}</SheetTitle>
@@ -161,7 +185,9 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
           <p className="text-xs text-muted-foreground">{lvl.max ? "¡Nivel máximo! Mochito es un campeón." : `Le faltan ${lvl.need - lvl.have} puntos para el nivel ${lvl.level + 1}.`}</p>
         </div>
 
-        <div className="flex items-end gap-6 pl-14">
+        <div className={cn("relative flex items-end gap-6 rounded-3xl p-3 pl-14 transition-[background-color] duration-500", sleeping && "bg-[#26244a] text-white")}>
+          {sleeping && <Moon className="absolute right-4 top-3 size-6 fill-amber-200 text-amber-200" aria-hidden />}
+          {bday?.isToday && <Cake className="absolute bottom-3 left-3 size-9 text-primary" aria-label="Pastel de cumpleaños" />}
           <button type="button" onClick={pet} aria-label="Acariciar a Mochito" className="relative h-32 shrink-0 cursor-pointer rounded-3xl active:scale-[0.97]">
             <MochitoHome home={profile.mochito_home}>
               <motion.span
@@ -172,8 +198,7 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
                 animate={moving && !reduce ? { transform: moving } : undefined}
                 transition={{ duration: move?.id === "bailar" ? 1.4 : 0.9, ease: EASE_OUT }}
               >
-                <DressedImage char="mochito" outfit={profile.mochito_outfit} alt="" className="h-full" />
-                {care.muddy && <Mud />}
+                <MochitoFigure outfit={profile.mochito_outfit} festive={festive} sleeping={sleeping}>{care.muddy && <Mud />}</MochitoFigure>
               </motion.span>
             </MochitoHome>
             {hearts > 0 && (
@@ -189,10 +214,10 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
               </motion.span>
             )}
           </button>
-          <p aria-live="polite" className="mb-6 min-w-0 flex-1 rounded-3xl rounded-bl-md bg-secondary px-4 py-3 text-base leading-snug text-pretty">{said}</p>
+          <p aria-live="polite" className="mb-6 min-w-0 flex-1 rounded-3xl rounded-bl-md bg-secondary px-4 py-3 text-base leading-snug text-pretty text-foreground">{said}</p>
         </div>
 
-        <div role="tablist" aria-label="Rincón de Mochito" className="grid grid-cols-3 gap-1 rounded-[1.75rem] bg-secondary p-1 sm:grid-cols-6">
+        <div role="tablist" aria-label="Rincón de Mochito" className="grid grid-cols-4 gap-1 rounded-[1.75rem] bg-secondary p-1 sm:grid-cols-7">
           {TABS.map((t) => {
             const Icon = t.icon;
             return (
@@ -211,6 +236,7 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
               <WalkScene reduce={!!reduce} find={walk.phase === "done" ? walk.find : undefined} outfit={profile.mochito_outfit} onArrive={arrive} onClose={() => setWalk(null)} />
             ) : (
               <>
+                <GiftCard opened={giftOpened(profile.mochito_gift, now) && !gifting} gifting={gifting} streakNext={nextStreak(profile.mochito_gift, now)} streakNow={profile.mochito_gift?.streak ?? 0} onOpen={() => void gift()} reduce={!!reduce} />
                 <div className="grid grid-cols-2 gap-3 rounded-3xl bg-secondary/60 p-3 sm:grid-cols-4">
                   <Bar label="Barriga" value={state.belly} icon={Bone} />
                   <Bar label="Cariño" value={state.love} icon={Heart} />
@@ -318,6 +344,7 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
         {tab === "cosas" && <ThingsTab g={g} home={profile.mochito_home} onLine={setLine} />}
         {tab === "amigos" && <FriendsTab met={profile.mochito_friends} />}
         {tab === "fotos" && <PhotoTab level={lvl.level} onLine={setLine} />}
+        {tab === "diario" && <DiaryTab log={profile.mochito_log} now={now} since={bday?.since} />}
       </SheetContent>
     </Sheet>
   );
@@ -501,6 +528,66 @@ function BathScene({ reduce, muddy, outfit, onStep, onDone, onClose }: { reduce:
           {step === "listo" ? "Volver" : "Dejarlo para después"}
         </button>
       </div>
+    </div>
+  );
+}
+
+/** El regalo del día: se abre una vez al día y crece con la racha. */
+function GiftCard({ opened, gifting, streakNext, streakNow, onOpen, reduce }: { opened: boolean; gifting: { coins: number; streak: number; bonus: number } | null; streakNext: number; streakNow: number; onOpen: () => void; reduce: boolean }) {
+  if (gifting) {
+    return (
+      <motion.div className="flex items-center gap-3 rounded-3xl bg-[color-mix(in_oklch,var(--gold)_35%,transparent)] p-3" initial={{ opacity: 0, transform: "scale(0.95)" }} animate={{ opacity: 1, transform: "scale(1)" }} transition={{ duration: reduce ? 0.2 : 0.35, ease: EASE_OUT }}>
+        <Gift className="size-8 shrink-0 text-primary" aria-hidden />
+        <p className="text-sm font-semibold">+{gifting.coins} monedas · racha de {gifting.streak} {gifting.streak === 1 ? "día" : "días"}{gifting.bonus ? " · ¡bono especial!" : ""}</p>
+      </motion.div>
+    );
+  }
+  if (opened) {
+    const to7 = 7 - (streakNow % 7);
+    return (
+      <p className="flex items-center gap-2 rounded-3xl bg-secondary/60 px-4 py-2 text-xs font-semibold text-muted-foreground">
+        <Gift className="size-4 shrink-0 text-primary" aria-hidden /> Racha de {streakNow} {streakNow === 1 ? "día" : "días"}. Mañana hay otro regalo{to7 < 7 ? `; en ${to7} ${to7 === 1 ? "día" : "días"} llega el bono` : ""}.
+      </p>
+    );
+  }
+  const preview = giftFor(streakNext);
+  return (
+    <button type="button" onClick={onOpen} className="flex min-h-16 items-center gap-3 rounded-3xl border-2 border-[var(--gold)] bg-card p-3 text-left active:scale-[0.97]">
+      <motion.span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[var(--gold)]" animate={reduce ? undefined : { transform: ["rotate(0deg)", "rotate(-8deg)", "rotate(8deg)", "rotate(0deg)"] }} transition={{ duration: 0.8, repeat: Infinity, repeatDelay: 1.6, ease: EASE_OUT }}>
+        <Gift className="size-6 text-foreground" aria-hidden />
+      </motion.span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold">Regalo del día</span>
+        <span className="block text-xs text-muted-foreground">Día {streakNext} seguido{preview.bonus ? " · ¡hoy trae bono!" : ""}. Tócalo para abrirlo.</span>
+      </span>
+    </button>
+  );
+}
+
+/** El diario de Mochito: lo que hicieron juntos cada día, contado por él. */
+function DiaryTab({ log, now, since }: { log?: { d: string; e: string[] }[]; now: number; since?: string }) {
+  const days = [...(log ?? [])].reverse();
+  return (
+    <div role="tabpanel" className="flex flex-col gap-3">
+      <p className="text-sm text-muted-foreground">
+        Mochito anota solito lo que hacen juntos.{since ? ` Llegó a tu vida el ${new Date(since + "T12:00:00").toLocaleDateString("es-GT", { day: "numeric", month: "long", year: "numeric" })}.` : ""}
+      </p>
+      {days.length === 0 ? (
+        <p className="rounded-2xl bg-secondary/60 px-4 py-3 text-sm text-muted-foreground">Todavía no hay recuerdos. Acarícialo, juega o sácalo a pasear y aquí lo cuenta.</p>
+      ) : (
+        <ol className="flex flex-col gap-3">
+          {days.map((day) => (
+            <li key={day.d} className="rounded-3xl border bg-card p-4">
+              <h3 className="mb-2 text-sm font-semibold first-letter:uppercase">{logDayTitle(day.d, now)}</h3>
+              <ul className="flex flex-col gap-1.5">
+                {day.e.map((e) => (
+                  <li key={e} className="flex gap-2 text-sm leading-snug"><span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" aria-hidden />{e}</li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   );
 }

@@ -52,7 +52,7 @@ export function FetchGame({ onExit, play = DEFAULT_PLAY }: { onExit: () => void;
   }, [holding, play.level]);
 
   const over = points.length >= FETCH_THROWS;
-  useEffect(() => { if (over) void mochitoDo("game"); }, [over]);
+  useEffect(() => { if (over) void mochitoDo("game", { game: "Atrapa la pelota" }); }, [over]);
 
   function press() {
     if (phase !== "aim" || holding || over) return;
@@ -219,7 +219,7 @@ export function HideGame({ onExit, play = DEFAULT_PLAY }: { onExit: () => void; 
   }, [phase, total, play.level]);
 
   const done = scores.length >= HIDE_ROUNDS;
-  useEffect(() => { if (done) void mochitoDo("game"); }, [done]);
+  useEffect(() => { if (done) void mochitoDo("game", { game: "Escondidas" }); }, [done]);
 
   useEffect(() => {
     if ((phase !== "found" && phase !== "lost") || done) return;

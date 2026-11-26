@@ -54,7 +54,7 @@ export function SimonGame({ onExit, play = DEFAULT_PLAY }: { onExit: () => void;
   }, [phase, len, seq, play.level]);
 
   const over = phase === "fail" || phase === "done";
-  useEffect(() => { if (over) void mochitoDo("game"); }, [over]);
+  useEffect(() => { if (over) void mochitoDo("game", { game: "Simón dice" }); }, [over]);
 
   function tap(m: SimonMove) {
     if (phase !== "input") return;
@@ -186,7 +186,7 @@ export function RunGame({ onExit, play = DEFAULT_PLAY }: { onExit: () => void; p
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [round]);
 
-  useEffect(() => { if (over) void mochitoDo("game"); }, [over]);
+  useEffect(() => { if (over) void mochitoDo("game", { game: "Carrera al parque" }); }, [over]);
 
   function hop() {
     if (over) return;
