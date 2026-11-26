@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { motion, useReducedMotion } from "motion/react";
-import { Gamepad2, Heart, Moon, Smile, UtensilsCrossed } from "lucide-react";
+import { Droplets, Gamepad2, Heart, Moon, Smile, UtensilsCrossed } from "lucide-react";
 import { DressedImage } from "@/components/dressed-image";
 import { MochitoPanel } from "@/components/mochito-panel";
 import { MochitoHome } from "@/components/mochito-things";
+import { PuppyArt } from "@/components/puppy-art";
+import { visitorOf } from "@/lib/mochito-play";
 import { db } from "@/lib/db/db";
 import { useProfile } from "@/lib/db/profile";
 import type { DidKind } from "@/lib/mochito-lines";
@@ -21,7 +23,7 @@ import { cn } from "@/lib/utils";
 
 const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 const DANCE = ["translateY(0px) rotate(-6deg)", "translateY(-12px) rotate(0deg)", "translateY(0px) rotate(6deg)", "translateY(-12px) rotate(0deg)", "translateY(0px) rotate(-6deg)"];
-const MOOD_ICON: Record<MochitoMood, typeof Moon> = { sueno: Moon, hambre: UtensilsCrossed, aburrido: Gamepad2, feliz: Heart, contento: Smile };
+const MOOD_ICON: Record<MochitoMood, typeof Moon> = { sueno: Moon, hambre: UtensilsCrossed, sucio: Droplets, aburrido: Gamepad2, feliz: Heart, contento: Smile };
 
 export { MOCHITO_GOTO, cameFromMochito, goTo, mochitoGameGoto, useClearMochitoGoto, type MochitoGoto } from "@/lib/mochito-goto";
 
@@ -81,9 +83,11 @@ export function Mochito({ className, style, interactive = true, dance = false, h
 
   const img = <DressedImage char="mochito" outfit={profile.mochito_outfit} alt="" className="h-full" imgClassName="drop-shadow-sm" />;
   if (!interactive) {
+    const visitor = home ? visitorOf(profile.mochito_friends, now) : null;
     return (
-      <div className={cn("pointer-events-none", className)} style={style} aria-hidden>
+      <div className={cn("pointer-events-none relative", className)} style={style} aria-hidden>
         {home ? <MochitoHome home={profile.mochito_home}>{img}</MochitoHome> : img}
+        {visitor && <span className="absolute bottom-0 left-[150%] h-[55%] w-[55%]"><PuppyArt friend={visitor} /></span>}
       </div>
     );
   }

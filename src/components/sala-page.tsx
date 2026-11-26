@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Bone, Brain, Dog, EyeOff, Cake, Coins, ListOrdered, Search, ShoppingBasket, Timer, Trophy } from "lucide-react";
+import { Bone, Brain, Dog, EyeOff, Footprints, Wand2, Cake, Coins, ListOrdered, Search, ShoppingBasket, Timer, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CakeGame } from "@/components/cake-game";
 import { GuessGame, MemoryGame, Result, StepsGame, type Play } from "@/components/mini-games";
 import { CatchGame, ChangeGame } from "@/components/mini-games-2";
 import { MochitoGame } from "@/components/mochito-game";
 import { FetchGame, HideGame } from "@/components/mochito-games-2";
+import { RunGame, SimonGame } from "@/components/mochito-games-3";
 import { mochitoGameGoto, useClearMochitoGoto } from "@/lib/mochito-goto";
 import { OvenGame } from "@/components/oven-game";
 import { Stars } from "@/components/stars";
@@ -22,6 +23,8 @@ const LIST: { id: MiniGame; text: string; icon: typeof Brain }[] = [
   { id: "mochito", text: "Mochito atrapa premios y esquiva lo que le hace daño.", icon: Bone },
   { id: "pelota", text: "Lanza la pelota a la banderita y Mochito corre por ella.", icon: Dog },
   { id: "escondidas", text: "Mochito se esconde en el local. ¡Encuéntralo a tiempo!", icon: EyeOff },
+  { id: "simon", text: "Repite los trucos de Mochito en el mismo orden.", icon: Wand2 },
+  { id: "carrera", text: "Salta charcos y piedras camino al parque.", icon: Footprints },
   { id: "pasos", text: "Pon en orden los pasos de tus recetas.", icon: ListOrdered },
   { id: "memoria", text: "Encuentra las parejas de ingredientes.", icon: Brain },
   { id: "adivina", text: "Pistas de ingredientes y a adivinar.", icon: Search },
@@ -69,6 +72,8 @@ function Inner() {
   if (game === "mochito") return <MochitoGame key={k} play={play} onExit={exit} />;
   if (game === "pelota") return <FetchGame key={k} play={play} onExit={exit} />;
   if (game === "escondidas") return <HideGame key={k} play={play} onExit={exit} />;
+  if (game === "simon") return <SimonGame key={k} play={play} onExit={exit} />;
+  if (game === "carrera") return <RunGame key={k} play={play} onExit={exit} />;
 
   return (
     <div className="flex max-w-5xl flex-col gap-6">

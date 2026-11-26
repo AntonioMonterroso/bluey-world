@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Check, Coins, DoorOpen, Hammer, Sparkles, Target, Utensils } from "lucide-react";
+import { Check, Coins, DoorOpen, Hammer, PawPrint, Sparkles, Target, Utensils } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BakeryScene, type SceneVisitor, type ScenePop } from "@/components/bakery-scene";
 import { Stars } from "@/components/stars";
@@ -27,6 +27,7 @@ import { sfx, sfxForLog } from "@/lib/sfx";
 import { useIsClient } from "@/lib/use-is-client";
 import { useMoney } from "@/lib/use-money";
 import { useVentaData, type VentaData } from "@/lib/venta-data";
+import { helperFind } from "@/lib/mochito-play";
 import { cn } from "@/lib/utils";
 
 type Phase = "preparar" | "decorar" | "vender" | "cierre";
@@ -190,7 +191,7 @@ function VenderPhase({ d, shift, setShift, fmt, workingIds }: { d: VentaData; sh
   );
 }
 
-function CierrePhase({ d, summary, result, fmt, onAgain, goal }: { d: VentaData; summary: ShiftSummary; result: ShiftResult | null; fmt: (n: number) => string; onAgain: () => void; goal: { goal: TurnGoal; ok: boolean } | null }) {
+function CierrePhase({ d, summary, result, fmt, onAgain, goal, dogFound = 0 }: { d: VentaData; summary: ShiftSummary; result: ShiftResult | null; fmt: (n: number) => string; onAgain: () => void; goal: { goal: TurnGoal; ok: boolean } | null; dogFound?: number }) {
   const delivered = d.specials.filter((o) => summary.specialsDone.includes(o.id));
   const tip =
     summary.lost > summary.served ? "Se fueron muchos clientes: hornea más o contrata a alguien que sirva más rápido."
@@ -224,6 +225,12 @@ function CierrePhase({ d, summary, result, fmt, onAgain, goal }: { d: VentaData;
         <Coins className="size-5 text-primary" aria-hidden />
         +{summary.coins} monedas{result && result.wages > 0 ? `, sueldos −${result.wages} (te quedan ${summary.coins - result.wages})` : " para tu tienda"} · <Stars value={summary.rating} />
       </p>
+      {d.helper && (
+        <p className="flex items-center gap-2 rounded-2xl bg-secondary px-4 py-3 text-sm font-semibold">
+          <PawPrint className="size-5 shrink-0 text-primary" aria-hidden />
+          {dogFound > 0 ? `¡Mochito encontró ${dogFound} monedas de propina debajo de una mesa!` : "Mochito saludó a los clientes y alegró a los que esperaban."}
+        </p>
+      )}
       {delivered.length > 0 && (
         <section aria-labelledby="entregas" className="flex flex-col gap-2">
           <h2 id="entregas" className="text-xl">Tortas entregadas</h2>
@@ -283,6 +290,7 @@ function Inner({ d }: { d: VentaData }) {
   const [eventKeys, setEventKeys] = useState<string[]>([]);
   const [result, setResult] = useState<ShiftResult | null>(null);
   const finishing = useRef(false);
+  const [dogFound, setDogFound] = useState(0);
   const [goalResult, setGoalResult] = useState<{ goal: TurnGoal; ok: boolean } | null>(null);
   const turnIdx = d.days.filter((x) => x.date === dayStart(Date.now())).length;
   const turn = turnFor(d.day, turnIdx, d.active.filter((m) => (d.stock[m.id] ?? 0) > 0).length);
@@ -318,6 +326,9 @@ function Inner({ d }: { d: VentaData }) {
         setGoalResult({ goal: t.goal, ok });
         if (ok) await writeAwards([{ id: `turno-reto:${d.day}:${t.idx}`, kind: "shift", label: `Reto del turno: ${t.goal.text}`, ...GOAL_BONUS, at: Date.now() }], await db.game_events.toArray());
       }
+      const found = d.helper ? helperFind(`${d.day}:${startedAt}`, d.helper.findChance) : 0;
+      if (found) await writeAwards([{ id: `mochito-local:${d.day}:${startedAt}`, kind: "mochito", label: "Mochito encontró propinas en el local", xp: 0, coins: found, at: Date.now() }], await db.game_events.toArray());
+      setDogFound(found);
       setResult(res);
       setSummary(sum);
       setPhase("cierre");
@@ -342,10 +353,12 @@ function Inner({ d }: { d: VentaData }) {
       category: d.recipes.find((r) => r.id === m.recipe_id)?.category,
     }));
     const applied = applyEventMods(shiftOptions(d.working, d.ups, now), now, d.days);
+    const turned = applyTurn(applied.opts, turn.surprise.mods);
     const opts = {
-      ...applyTurn(applied.opts, turn.surprise.mods),
+      ...turned,
       arrivalMult: applied.opts.arrivalMult * d.effects.arrivalMult,
-      tipBonus: applied.opts.tipBonus + d.effects.tipBonus,
+      tipBonus: applied.opts.tipBonus + d.effects.tipBonus + (d.helper?.tipBonus ?? 0),
+      patienceBonusMs: turned.patienceBonusMs + (d.helper?.patienceMs ?? 0),
       tables: d.tables,
       loyalty: d.loyalty,
       specials: d.specials
@@ -375,7 +388,7 @@ function Inner({ d }: { d: VentaData }) {
       {phase === "preparar" && <PrepararPhase d={d} fmt={fmt} onNext={() => setPhase("decorar")} />}
       {phase === "decorar" && <DecorarPhase d={d} fmt={fmt} reason={reason} onBack={() => setPhase("preparar")} onOpen={open} />}
       {phase === "vender" && shift && <VenderPhase d={d} shift={shift} setShift={setShift} fmt={fmt} workingIds={workingIds} />}
-      {phase === "cierre" && summary && <CierrePhase d={d} summary={summary} result={result} fmt={fmt} goal={goalResult} onAgain={() => { setShift(null); setSummary(null); setPhase("preparar"); }} />}
+      {phase === "cierre" && summary && <CierrePhase d={d} summary={summary} result={result} fmt={fmt} goal={goalResult} dogFound={dogFound} onAgain={() => { setShift(null); setSummary(null); setPhase("preparar"); }} />}
     </div>
   );
 }

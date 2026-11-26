@@ -6,7 +6,7 @@ import { upsertRow } from "@/lib/db/repo";
 import { dayKey } from "@/lib/game/engine";
 import { writeAwards } from "@/lib/game/use-game";
 import { WEAR_ITEMS } from "@/lib/game/wardrobe";
-import { EMPTY_STATS, applyCare, earnedMedals, medalEventId, mochitoLevel, walkFind, type CareKind, type WalkFind } from "@/lib/mochito-play";
+import { EMPTY_STATS, FRIEND_AT, applyCare, earnedMedals, friendsOf, medalEventId, mochitoLevel, walkFind, walkMeet, type CareKind, type Friend, type WalkFind } from "@/lib/mochito-play";
 
 const thingsOf = (home: { bed?: string; bowl?: string; toy?: string } | undefined) => [home?.bed, home?.bowl, home?.toy].filter(Boolean).length;
 
@@ -14,7 +14,7 @@ const thingsOf = (home: { bed?: string; bowl?: string; toy?: string } | undefine
 async function payMedals() {
   const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
   const stats = { ...EMPTY_STATS, ...p.mochito_stats };
-  const medals = earnedMedals({ stats, tricks: p.mochito_tricks ?? [], level: mochitoLevel(stats.xp).level, things: thingsOf(p.mochito_home) });
+  const medals = earnedMedals({ stats, tricks: p.mochito_tricks ?? [], level: mochitoLevel(stats.xp).level, things: thingsOf(p.mochito_home), friends: friendsOf(p.mochito_friends).length });
   if (!medals.length) return [];
   const existing = await db.game_events.toArray();
   const had = new Set(existing.filter((e) => !e.deleted_at).map((e) => e.id));
@@ -24,7 +24,7 @@ async function payMedals() {
 }
 
 /** Lo que haces con Mochito: suma a su nivel, a sus barras y revisa si ganó una medalla. Devuelve el nivel antes y después. */
-export async function mochitoDo(kind: CareKind, extra: { trick?: string } = {}) {
+export async function mochitoDo(kind: CareKind, extra: { trick?: string; friend?: string } = {}) {
   const now = Date.now();
   const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
   const care = p.mochito_care ?? {};
@@ -33,15 +33,18 @@ export async function mochitoDo(kind: CareKind, extra: { trick?: string } = {}) 
   const patch: Parameters<typeof updateProfile>[0] = { mochito_stats: stats };
   if (kind === "pet") patch.mochito_care = { ...care, petted: now };
   if (kind === "treat") patch.mochito_care = { ...care, fed: now };
-  if (kind === "game" || kind === "walk") patch.mochito_care = { ...care, played: now };
+  if (kind === "game") patch.mochito_care = { ...care, played: now };
+  if (kind === "walk") patch.mochito_care = { ...care, played: now, muddy: true };
+  if (kind === "bath") patch.mochito_care = { ...care, washed: now, muddy: false };
+  if (kind === "walk" && extra.friend) patch.mochito_friends = { ...p.mochito_friends, [extra.friend]: (p.mochito_friends?.[extra.friend] ?? 0) + 1 };
   if (kind === "trick" && extra.trick) patch.mochito_tricks = [...new Set([...(p.mochito_tricks ?? []), extra.trick])];
   await updateProfile(patch);
   const medals = await payMedals();
   return { before, after: mochitoLevel(stats.xp).level, medals };
 }
 
-/** El paseo del día: una vez al día, encuentra algo y queda feliz. */
-export async function mochitoWalk(): Promise<WalkFind & { medals: string[]; levelUp: number }> {
+/** El paseo del día: una vez al día, encuentra algo, a veces un amiguito, y regresa con lodo. */
+export async function mochitoWalk(): Promise<WalkFind & { medals: string[]; levelUp: number; friend: Friend | null; met: number }> {
   const now = Date.now();
   const owned = new Set((await db.owned_items.toArray()).filter((o) => !o.deleted_at).map((o) => o.id));
   const cheap = WEAR_ITEMS.filter((w) => !w.event && w.price > 0 && w.price <= 40 && !owned.has(w.id)).map((w) => ({ id: w.id, name: w.name }));
@@ -51,9 +54,22 @@ export async function mochitoWalk(): Promise<WalkFind & { medals: string[]; leve
     await writeAwards([{ id: `mochito-paseo:${day}`, kind: "mochito", label: "Paseo con Mochito", xp: 0, coins: find.coins, at: now }], await db.game_events.toArray());
   }
   if (find.kind === "wear") await upsertRow<OwnedItem>("owned_items", { id: find.itemId, bought_at: now });
-  const r = await mochitoDo("walk");
-  return { ...find, medals: r.medals, levelUp: r.after > r.before ? r.after : 0 };
+  const friend = walkMeet(now);
+  const r = await mochitoDo("walk", { friend: friend?.id });
+  const p = await db.profile.get(PROFILE_ID);
+  const met = friend ? (p?.mochito_friends?.[friend.id] ?? 0) : 0;
+  return { ...find, medals: r.medals, levelUp: r.after > r.before ? r.after : 0, friend, met };
 }
+
+/** Guarda una foto de Mochito en este dispositivo. */
+export async function saveMochitoPhoto(data: string, scene: string) {
+  const now = Date.now();
+  await db.mochito_photos.put({ id: `foto-${now}`, at: now, data, scene });
+  return mochitoDo("photo");
+}
+export const deleteMochitoPhoto = (id: string) => db.mochito_photos.delete(id);
+
+export { FRIEND_AT };
 
 /** Pone (o quita) una de sus cosas: cama, platito o juguete. */
 export async function setMochitoThing(slot: "bed" | "bowl" | "toy", id: string | undefined) {

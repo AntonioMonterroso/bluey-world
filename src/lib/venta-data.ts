@@ -19,6 +19,7 @@ import { qualityMap, reputationOf, shiftsLeft, stockMap } from "@/lib/game/sales
 import { onDuty, type StaffLite } from "@/lib/game/team";
 import { useGame } from "@/lib/game/use-game";
 import { scaleIngredients, useRecipes } from "@/lib/recipes";
+import { friendsOf, mochitoHelper, mochitoLevel } from "@/lib/mochito-play";
 
 export interface VentaData {
   day: string; // "2026-10-22"
@@ -44,6 +45,7 @@ export interface VentaData {
   dayPlan: Record<string, string>;
   appeal: Appeal;
   effects: { arrivalMult: number; tipBonus: number };
+  helper: ReturnType<typeof mochitoHelper> | null; // lo que ayuda Mochito (null si está escondido)
   tables: number;
   chars: string[]; // personajes que pueden venir de clientes
   staffOutfits: Record<string, Record<string, string>>; // ropa de tu equipo, por personaje
@@ -84,7 +86,8 @@ export function useVentaData(): VentaData | undefined {
     const active = menu.filter((m) => m.active);
     const prices = Object.fromEntries(SLOTS.map((s) => [s.id, equipped(bakery.decor, s.id).price]));
     const fav = favoriteOfDay(STICKER_ITEMS.map((s) => s.id), day);
-    const appeal = appealOf({ prices, props: dayPlan, shown: active.length, stickers: stickerPoints(bakery.stickers, fav).total, mochito: profile.mochito !== false });
+    const helper = profile.mochito !== false ? mochitoHelper(mochitoLevel(profile.mochito_stats?.xp ?? 0).level, profile.mochito_tricks?.length ?? 0, friendsOf(profile.mochito_friends).length) : null;
+    const appeal = appealOf({ prices, props: dayPlan, shown: active.length, stickers: stickerPoints(bakery.stickers, fav).total, mochito: helper?.appeal ?? 0 });
     const taken = new Set([profile.character, ...staff.map((x) => x.char)]);
     return {
       day, bakery, profile, menu, active, recipes, cookLogs, days, staff,
@@ -93,7 +96,7 @@ export function useVentaData(): VentaData | undefined {
       stock, quality, unitCost,
       rep: reputationOf(days),
       left: shiftsLeft(days, cookLogs, dayStart(now)),
-      coins: game.coins, specials, dayPlan, appeal, effects: appealEffects(appeal.total),
+      coins: game.coins, specials, dayPlan, appeal, effects: appealEffects(appeal.total), helper,
       tables: equipped(bakery.decor, "tables").id === "decor:t-dos" ? 2 : equipped(bakery.decor, "tables").id === "decor:t-una" ? 1 : 0,
       chars: CHARACTERS.map((c) => c.id).filter((id) => !taken.has(id)),
       staffOutfits: Object.fromEntries(staff.filter((s) => s.outfit).map((s) => [s.char, s.outfit!])),

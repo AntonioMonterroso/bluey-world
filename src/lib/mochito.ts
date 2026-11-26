@@ -1,6 +1,7 @@
 // Mochito: el perrito que siempre acompaña a tu personaje. Lógica pura.
 
 import { extraLine, type SayContext } from "./mochito-lines";
+import { cleanOf } from "./mochito-play";
 
 export const MOCHITO_APPEAL = 3; // en el local saluda a los clientes
 
@@ -235,8 +236,8 @@ export function mochitoLine(hour: number, pick: number) {
 
 // ── Cómo está Mochito ───────────────────────────────────────────────
 
-export interface MochitoCare { fed?: number; petted?: number; played?: number }
-export type MochitoMood = "sueno" | "hambre" | "aburrido" | "feliz" | "contento";
+export interface MochitoCare { fed?: number; petted?: number; played?: number; washed?: number; muddy?: boolean }
+export type MochitoMood = "sueno" | "hambre" | "sucio" | "aburrido" | "feliz" | "contento";
 
 const HOUR = 3_600_000;
 const level = (since: number | undefined, now: number, hoursToEmpty: number) =>
@@ -250,20 +251,23 @@ export function mochitoState(care: MochitoCare | undefined, now: number) {
   const belly = level(c.fed, now, 10);
   const love = level(c.petted, now, 12);
   const fun = level(c.played, now, 24);
+  const clean = cleanOf(c, now);
   const hour = new Date(now).getHours();
   const mood: MochitoMood =
     hour >= 22 || hour < 6 ? "sueno"
     : belly < 30 ? "hambre"
+    : clean < 15 ? "sucio"
     : fun < 25 ? "aburrido"
     : love >= 50 && belly >= 50 ? "feliz"
     : "contento";
   const full = !!c.fed && now - c.fed < FEED_EVERY_H * HOUR;
-  return { belly, love, fun, mood, full };
+  return { belly, love, fun, clean, mood, full };
 }
 
 export const MOOD_LABEL: Record<MochitoMood, string> = {
   sueno: "Con sueño",
   hambre: "Con hambre",
+  sucio: "Sucio",
   aburrido: "Aburrido",
   feliz: "Feliz",
   contento: "Contento",
@@ -272,6 +276,7 @@ export const MOOD_LABEL: Record<MochitoMood, string> = {
 const MOOD_LINES: Record<MochitoMood, string[]> = {
   sueno: ["Mmm… ya me estoy quedando dormido.", "Ya es hora de dormir. ¿Tú también?"],
   hambre: ["Mi pancita hace ruido… ¿me das una galleta?", "Huelo algo rico y yo con hambre."],
+  sucio: ["Traigo lodo del paseo. ¿Me bañas?", "Me pica todo. Creo que necesito un baño con burbujas."],
   aburrido: ["¿Jugamos un ratito? Yo atrapo las galletas.", "Estoy aburrido. ¡Juguemos!"],
   feliz: ["¡Estoy feliz de estar contigo!", "Panza llena, corazón contento."],
   contento: ["Aquí estoy, contento a tu lado."],

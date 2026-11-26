@@ -131,3 +131,67 @@ describe("Frases nuevas de Mochito", () => {
     }
   });
 });
+
+describe("Baño, amigos, ayudante y juegos nuevos", () => {
+  it("el lodo del paseo lo deja sucio hasta bañarlo", async () => {
+    const { cleanOf } = await import("@/lib/mochito-play");
+    const { mochitoState } = await import("@/lib/mochito");
+    const noon = new Date(2026, 10, 26, 12).getTime();
+    expect(cleanOf({ muddy: true, washed: noon }, noon)).toBe(0);
+    expect(cleanOf({ washed: noon }, noon)).toBe(100);
+    expect(cleanOf({ washed: noon - 36 * 3_600_000 }, noon)).toBe(50);
+    expect(cleanOf(undefined, noon)).toBe(60);
+    expect(mochitoState({ fed: noon, petted: noon, played: noon, muddy: true }, noon).mood).toBe("sucio");
+    expect(mochitoState({ fed: noon, petted: noon, played: noon, washed: noon }, noon).mood).toBe("feliz");
+  });
+
+  it("el baño y las fotos cuentan para sus medallas", () => {
+    let s = applyCare(undefined, "bath", DAY);
+    s = applyCare(s, "photo", DAY);
+    expect(s).toMatchObject({ baths: 1, photos: 1 });
+    const ids = earnedMedals({ stats: s, tricks: [], level: 1, things: 0, friends: 1 }).map((m) => m.id);
+    expect(ids).toEqual(expect.arrayContaining(["bano-1", "amigo-1"]));
+  });
+
+  it("los amigos salen del paseo y uno visita el local", async () => {
+    const { FRIENDS, FRIEND_AT, friendsOf, visitorOf, walkMeet } = await import("@/lib/mochito-play");
+    expect(walkMeet(DAY)).toEqual(walkMeet(DAY + 3_600_000));
+    let met = 0;
+    for (let d = 0; d < 60; d++) if (walkMeet(DAY + d * 86_400_000)) met++;
+    expect(met).toBeGreaterThan(15);
+    expect(met).toBeLessThan(50);
+    const counts = { [FRIENDS[0].id]: FRIEND_AT, [FRIENDS[1].id]: FRIEND_AT - 1 };
+    expect(friendsOf(counts).map((f) => f.id)).toEqual([FRIENDS[0].id]);
+    expect(visitorOf(counts, DAY)?.id).toBe(FRIENDS[0].id);
+    expect(visitorOf({}, DAY)).toBeNull();
+  });
+
+  it("en el local ayuda más mientras más nivel, trucos y amigos tiene", async () => {
+    const { helperFind, mochitoHelper } = await import("@/lib/mochito-play");
+    const { appealOf } = await import("@/lib/game/appeal");
+    const low = mochitoHelper(1, 0, 0);
+    const high = mochitoHelper(12, 7, 5);
+    expect(low.appeal).toBe(3);
+    expect(high.appeal).toBe(10);
+    expect(high.patienceMs).toBe(2800);
+    expect(high.tipBonus).toBeGreaterThan(low.tipBonus);
+    expect(appealOf({ prices: {}, props: {}, shown: 0, mochito: 7 }).mochito).toBe(7);
+    expect(helperFind("x", 0)).toBe(0);
+    expect(helperFind("x", 1)).toBeGreaterThanOrEqual(2);
+  });
+
+  it("Simón dice y la carrera calculan bien", async () => {
+    const { SIMON_ROUNDS, collides, jumpHeight, runScore, simonScore, simonSeq, JUMP_MS, RUN_X } = await import("@/lib/mochito-play");
+    expect(simonSeq(rng("a"), 5)).toHaveLength(5);
+    expect(simonScore(SIMON_ROUNDS)).toBe(1);
+    expect(simonScore(0)).toBe(0);
+    expect(jumpHeight(0)).toBe(0);
+    expect(jumpHeight(JUMP_MS / 2)).toBeCloseTo(0.3);
+    expect(jumpHeight(JUMP_MS)).toBe(0);
+    expect(collides(RUN_X, 0.12, 0)).toBe(true);
+    expect(collides(RUN_X, 0.12, 0.3)).toBe(false);
+    expect(collides(RUN_X + 0.2, 0.12, 0)).toBe(false);
+    expect(runScore(10, 0)).toBe(1);
+    expect(runScore(5, 5)).toBeLessThan(0.5);
+  });
+});

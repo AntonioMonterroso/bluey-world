@@ -47,7 +47,7 @@ export interface AppealInput {
   props: Record<string, string>; // adornos de hoy: lugar → adorno
   shown: number; // postres en la vitrina
   stickers?: number; // puntos de las pegatinas pegadas en el local
-  mochito?: boolean; // Mochito está en el local saludando
+  mochito?: boolean | number; // Mochito está en el local saludando (o cuántos puntos aporta según su nivel)
 }
 
 export interface Appeal {
@@ -69,7 +69,7 @@ export function appealOf({ prices, props, shown, stickers = 0, mochito = false }
   }, 0);
   const propsPts = Math.min(31, placed);
   const vitrina = Math.min(9, Math.round(Math.min(6, shown) * 1.5));
-  const dog = mochito ? MOCHITO_APPEAL : 0;
+  const dog = typeof mochito === "number" ? mochito : mochito ? MOCHITO_APPEAL : 0;
   return { total: Math.min(100, permanent + propsPts + vitrina + stickers + dog), permanent, props: propsPts, vitrina, stickers, mochito: dog };
 }
 

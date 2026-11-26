@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { Award, Bell, Bone, Coins, Cookie, Dog, Flower2, Footprints, Gamepad2, Hand, Heart, Home, Lock, Shirt, Sparkles, TreePine, Wand2 } from "lucide-react";
+import { Award, Bath, Bell, Bone, Camera, Coins, Cookie, Dog, Droplets, Flower2, Footprints, Gamepad2, Hand, Heart, Home, Lock, Shirt, Sparkles, TreePine, Users, Wand2 } from "lucide-react";
 import { DressedImage } from "@/components/dressed-image";
 import { goTo, type MochitoGoto } from "@/lib/mochito-goto";
 import { MochitoHome, ThingArt } from "@/components/mochito-things";
@@ -15,36 +15,32 @@ import { MOOD_LABEL, actionLine, mochitoSays, mochitoState, type MochitoNews } f
 import { LEVEL_UP, MEDAL_WON, THING_NEW, TRICK_DONE, WALK_GO } from "@/lib/mochito-lines";
 import { useMochitoDid } from "@/components/mochito";
 import { mochitoDo, mochitoWalk, setMochitoThing } from "@/lib/mochito-actions";
-import { EMPTY_STATS, MEDALS, TEACH_TRIES, TRICKS, earnedMedals, mochitoLevel, trickReady, walkedToday, type WalkFind } from "@/lib/mochito-play";
+import { EMPTY_STATS, FRIEND_AT, MEDALS, SCRUB_STEPS, TEACH_TRIES, TRICKS, earnedMedals, friendsOf, mochitoLevel, trickReady, walkedToday, type Friend, type WalkFind } from "@/lib/mochito-play";
+import { FriendsTab } from "@/components/mochito-friends";
+import { PhotoTab } from "@/components/mochito-photos";
+import { TRICK_MOVES } from "@/lib/mochito-moves";
 import { sfx } from "@/lib/sfx";
 import { cn } from "@/lib/utils";
 
 const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 const pickOf = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 
-/** Cómo se mueve en cada truco. */
-const TRICK_MOVES: Record<string, string[]> = {
-  sentarse: ["translateY(0px) scaleY(1)", "translateY(6px) scaleY(0.9)", "translateY(6px) scaleY(0.9)", "translateY(0px) scaleY(1)"],
-  pata: ["rotate(0deg)", "rotate(-10deg)", "rotate(-4deg)", "rotate(-10deg)", "rotate(0deg)"],
-  girar: ["scaleX(1)", "scaleX(-1)", "scaleX(1)", "scaleX(-1)", "scaleX(1)"],
-  saltar: ["translateY(0px)", "translateY(-44px)", "translateY(0px)", "translateY(-20px)", "translateY(0px)"],
-  rodar: ["rotate(0deg)", "rotate(180deg)", "rotate(360deg)"],
-  muerto: ["rotate(0deg)", "rotate(-80deg)", "rotate(-80deg)", "rotate(-80deg)", "rotate(0deg)"],
-  bailar: ["translateY(0px) rotate(-8deg)", "translateY(-14px) rotate(0deg)", "translateY(0px) rotate(8deg)", "translateY(-14px) rotate(0deg)", "translateY(0px) rotate(-8deg)", "translateY(-14px) rotate(0deg)", "translateY(0px) rotate(0deg)"],
-};
-
-type Tab = "cuidar" | "trucos" | "medallas" | "cosas";
+type Tab = "cuidar" | "trucos" | "medallas" | "cosas" | "amigos" | "fotos";
 const TABS: { id: Tab; label: string; icon: typeof Heart }[] = [
   { id: "cuidar", label: "Cuidar", icon: Heart },
   { id: "trucos", label: "Trucos", icon: Wand2 },
   { id: "medallas", label: "Medallas", icon: Award },
   { id: "cosas", label: "Sus cosas", icon: Home },
+  { id: "amigos", label: "Amigos", icon: Users },
+  { id: "fotos", label: "Fotos", icon: Camera },
 ];
 
 const GAMES: { goto: MochitoGoto; name: string; icon: typeof Bone }[] = [
   { goto: "juego:mochito", name: "Galletas", icon: Cookie },
   { goto: "juego:pelota", name: "Pelota", icon: Dog },
   { goto: "juego:escondidas", name: "Escondidas", icon: Sparkles },
+  { goto: "juego:simon", name: "Simón dice", icon: Wand2 },
+  { goto: "juego:carrera", name: "Carrera", icon: Footprints },
 ];
 
 function Bar({ label, value, icon: Icon }: { label: string; value: number; icon: typeof Heart }) {
@@ -78,8 +74,9 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
   const [move, setMove] = useState<{ id: string; n: number } | null>(null);
   const [practice, setPractice] = useState<Record<string, number>>({});
   const [games, setGames] = useState(false);
-  const [walk, setWalk] = useState<{ phase: "going" | "done"; find?: WalkFind } | null>(null);
-  const walkRef = useRef<{ arrived: boolean; find?: WalkFind }>({ arrived: false });
+  const [bath, setBath] = useState(false);
+  const [walk, setWalk] = useState<{ phase: "going" | "done"; find?: Awaited<ReturnType<typeof mochitoWalk>> } | null>(null);
+  const walkRef = useRef<{ arrived: boolean; find?: Awaited<ReturnType<typeof mochitoWalk>> }>({ arrived: false });
   const did = useMochitoDid(open ? now : 0);
   const ctx = { now, birthday: profile.birthday, did };
   const said = line ?? (news[0]?.text ?? mochitoSays(state.mood, new Date(now).getHours(), (now % 997) / 997, ctx));
@@ -117,9 +114,17 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
     setWalk((w) => (w ? { ...w, phase: "done" } : w));
     if (walkRef.current.find) tell(walkRef.current.find);
   }
-  function tell(find: WalkFind & { medals?: string[]; levelUp?: number }) {
+  function tell(find: WalkFind & { medals?: string[]; levelUp?: number; friend?: Friend | null; met?: number }) {
     sfx(find.kind === "coins" ? "coin" : "success");
-    setLine(`${find.text}${find.levelUp ? ` ¡Y subí al nivel ${find.levelUp}!` : find.medals?.length ? ` ¡Y gané la medalla «${find.medals[0]}»!` : ""}`);
+    const friend = find.friend ? (find.met === FRIEND_AT ? ` ¡Y me encontré a ${find.friend.name} otra vez! Ahora somos amigos.` : (find.met ?? 0) > FRIEND_AT ? ` Jugué con mi amigo ${find.friend.name}.` : ` Conocí a ${find.friend.name}. Me dijo: «${find.friend.says}»`) : "";
+    setLine(`${find.text}${friend}${find.levelUp ? ` ¡Y subí al nivel ${find.levelUp}!` : find.medals?.length ? ` ¡Y gané la medalla «${find.medals[0]}»!` : ""}`);
+  }
+  async function finishBath() {
+    sfx("success");
+    setLine(pickOf(["¡Rechinando de limpio! Huelo a jabón de coco.", "¡Qué rico baño! Ahora estoy suavecito.", "Ya no tengo lodo. ¡Mira cómo brillo!", "Gracias por bañarme. Me siento nuevo."]));
+    const r = await mochitoDo("bath");
+    if (r.after > r.before) setLine(`${pickOf(LEVEL_UP)} Ya soy nivel ${r.after}.`);
+    else if (r.medals.length) setLine(`${pickOf(MEDAL_WON)} Es «${r.medals[0]}».`);
   }
   function doTrick(id: string) {
     const t = TRICKS.find((x) => x.id === id)!;
@@ -138,11 +143,11 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
   }
 
   const walked = walkedToday(stats, now) && !walk;
-  const medalsHave = new Set(earnedMedals({ stats, tricks, level: lvl.level, things: [profile.mochito_home?.bed, profile.mochito_home?.bowl, profile.mochito_home?.toy].filter(Boolean).length }).map((m) => m.id));
+  const medalsHave = new Set(earnedMedals({ stats, tricks, level: lvl.level, things: [profile.mochito_home?.bed, profile.mochito_home?.bowl, profile.mochito_home?.toy].filter(Boolean).length, friends: friendsOf(profile.mochito_friends).length }).map((m) => m.id));
   const moving = move ? TRICK_MOVES[move.id] : null;
 
   return (
-    <Sheet open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setLine(null); setGames(false); setWalk(null); setTab("cuidar"); } }}>
+    <Sheet open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setLine(null); setGames(false); setWalk(null); setBath(false); setTab("cuidar"); } }}>
       <SheetContent side="bottom" className="mx-auto max-h-[92dvh] w-full max-w-xl overflow-y-auto rounded-t-[2rem] p-5 pb-8">
         <SheetHeader className="p-0">
           <SheetTitle className="font-heading text-2xl">Mochito · Nivel {lvl.level}</SheetTitle>
@@ -161,13 +166,14 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
             <MochitoHome home={profile.mochito_home}>
               <motion.span
                 key={move ? `${move.id}-${move.n}` : "quieto"}
-                className="block h-full"
+                className="relative block h-full"
                 style={{ transformOrigin: "50% 100%" }}
                 initial={false}
                 animate={moving && !reduce ? { transform: moving } : undefined}
                 transition={{ duration: move?.id === "bailar" ? 1.4 : 0.9, ease: EASE_OUT }}
               >
                 <DressedImage char="mochito" outfit={profile.mochito_outfit} alt="" className="h-full" />
+                {care.muddy && <Mud />}
               </motion.span>
             </MochitoHome>
             {hearts > 0 && (
@@ -186,11 +192,11 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
           <p aria-live="polite" className="mb-6 min-w-0 flex-1 rounded-3xl rounded-bl-md bg-secondary px-4 py-3 text-base leading-snug text-pretty">{said}</p>
         </div>
 
-        <div role="tablist" aria-label="Rincón de Mochito" className="grid grid-cols-4 gap-1 rounded-[1.75rem] bg-secondary p-1 sm:rounded-full">
+        <div role="tablist" aria-label="Rincón de Mochito" className="grid grid-cols-3 gap-1 rounded-[1.75rem] bg-secondary p-1 sm:grid-cols-6">
           {TABS.map((t) => {
             const Icon = t.icon;
             return (
-              <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => { setTab(t.id); sfx("click"); }} className={cn("flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-3xl px-1 text-[11px] font-semibold leading-tight transition-[background-color,color] duration-150 active:scale-[0.97] sm:flex-row sm:gap-1 sm:rounded-full sm:text-sm", tab === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}>
+              <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => { setTab(t.id); sfx("click"); }} className={cn("flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-3xl px-1 text-[11px] font-semibold leading-tight transition-[background-color,color] duration-150 active:scale-[0.97] sm:text-xs", tab === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}>
                 <Icon className="size-4 shrink-0" aria-hidden /> <span className="whitespace-nowrap">{t.label}</span>
               </button>
             );
@@ -199,18 +205,22 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
 
         {tab === "cuidar" && (
           <div role="tabpanel" className="flex flex-col gap-4">
-            {walk ? (
+            {bath ? (
+              <BathScene reduce={!!reduce} muddy={!!care.muddy} outfit={profile.mochito_outfit} onStep={(t) => setLine(t)} onDone={() => void finishBath()} onClose={() => setBath(false)} />
+            ) : walk ? (
               <WalkScene reduce={!!reduce} find={walk.phase === "done" ? walk.find : undefined} outfit={profile.mochito_outfit} onArrive={arrive} onClose={() => setWalk(null)} />
             ) : (
               <>
-                <div className="grid grid-cols-3 gap-3 rounded-3xl bg-secondary/60 p-3">
+                <div className="grid grid-cols-2 gap-3 rounded-3xl bg-secondary/60 p-3 sm:grid-cols-4">
                   <Bar label="Barriga" value={state.belly} icon={Bone} />
                   <Bar label="Cariño" value={state.love} icon={Heart} />
                   <Bar label="Diversión" value={state.fun} icon={Gamepad2} />
+                  <Bar label="Limpieza" value={state.clean} icon={Droplets} />
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                   <button type="button" className={action} onClick={pet}><Hand className="size-6 text-primary" aria-hidden /> Acariciar</button>
                   <button type="button" className={action} onClick={feed}><Cookie className="size-6 text-primary" aria-hidden /> Galleta</button>
+                  <button type="button" className={action} onClick={() => { setBath(true); setLine(care.muddy ? "¡Sí! Quítame este lodo, por favor." : "¿Baño con burbujas? ¡Me encanta!"); sfx("click"); }}><Bath className="size-6 text-primary" aria-hidden /> Bañar</button>
                   <button type="button" className={action} disabled={walked} onClick={() => void goWalk()} title={walked ? "Ya paseó hoy. Mañana sale otra vez." : undefined}>
                     <Footprints className="size-6 text-primary" aria-hidden /> {walked ? "Mañana otra vez" : "Pasear"}
                   </button>
@@ -306,6 +316,8 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
         )}
 
         {tab === "cosas" && <ThingsTab g={g} home={profile.mochito_home} onLine={setLine} />}
+        {tab === "amigos" && <FriendsTab met={profile.mochito_friends} />}
+        {tab === "fotos" && <PhotoTab level={lvl.level} onLine={setLine} />}
       </SheetContent>
     </Sheet>
   );
@@ -395,6 +407,100 @@ function WalkScene({ reduce, find, outfit, onArrive, onClose }: { reduce: boolea
       ) : (
         <p className="text-sm text-muted-foreground" aria-live="polite">Mochito va de paseo por el parque…</p>
       )}
+    </div>
+  );
+}
+
+/** Manchitas de lodo encima de Mochito (después del paseo, hasta que lo bañas). */
+function Mud({ fade = 0 }: { fade?: number }) {
+  return (
+    <svg viewBox="0 0 100 140" className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden style={{ opacity: 1 - fade }}>
+      <g fill="#7a5230" opacity="0.75">
+        <ellipse cx="38" cy="96" rx="9" ry="6" />
+        <ellipse cx="62" cy="108" rx="7" ry="5" />
+        <ellipse cx="30" cy="126" rx="8" ry="4" />
+        <ellipse cx="66" cy="128" rx="7" ry="4" />
+        <circle cx="52" cy="88" r="3.5" />
+        <circle cx="45" cy="114" r="3" />
+      </g>
+    </svg>
+  );
+}
+
+/** El baño: primero se enjabona tallándolo con el dedo y luego se cepilla. */
+function BathScene({ reduce, muddy, outfit, onStep, onDone, onClose }: { reduce: boolean; muddy: boolean; outfit?: Record<string, string>; onStep: (t: string) => void; onDone: () => void; onClose: () => void }) {
+  const [step, setStep] = useState<"jabon" | "cepillo" | "listo">("jabon");
+  const [rubs, setRubs] = useState(0);
+  const [bubbles, setBubbles] = useState<{ id: number; x: number; y: number }[]>([]);
+  const last = useRef<{ x: number; y: number } | null>(null);
+  const nextId = useRef(1);
+
+  function rub(x: number, y: number, force = false) {
+    if (step === "listo") return;
+    const prev = last.current;
+    const far = !prev || Math.hypot(x - prev.x, y - prev.y) > 0.12;
+    if (!far && !force) return;
+    last.current = { x, y };
+    if (step === "jabon") setBubbles((b) => [...b.slice(-14), { id: nextId.current++, x, y }]);
+    const n = rubs + 1;
+    sfx("click");
+    if (n < SCRUB_STEPS) { setRubs(n); return; }
+    if (step === "jabon") {
+      setStep("cepillo"); setRubs(0); last.current = null;
+      onStep("¡Qué espumita! Ahora cepíllame el pelo, despacito.");
+    } else {
+      setStep("listo"); setBubbles([]);
+      onDone();
+    }
+  }
+  const progress = step === "listo" ? 1 : rubs / SCRUB_STEPS;
+  const mudFade = step === "jabon" ? progress : 1;
+
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-sm font-semibold" aria-live="polite">
+        {step === "jabon" ? `Paso 1 de 2: talla a Mochito con el dedo para enjabonarlo (${rubs} de ${SCRUB_STEPS}).` : step === "cepillo" ? `Paso 2 de 2: pásale el cepillo por el pelo (${rubs} de ${SCRUB_STEPS}).` : "¡Listo! Mochito quedó limpiecito."}
+      </p>
+      <div
+        className="relative flex h-48 touch-none select-none items-end justify-center overflow-hidden rounded-3xl bg-gradient-to-b from-sky-50 to-cyan-100 dark:from-sky-950 dark:to-cyan-950"
+        onPointerMove={(e) => { if (e.buttons || e.pointerType === "touch") { const r = e.currentTarget.getBoundingClientRect(); rub((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); } }}
+        onPointerDown={(e) => { const r = e.currentTarget.getBoundingClientRect(); rub((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); }}
+      >
+        <div className="absolute inset-x-6 bottom-2 h-14 rounded-b-[3rem] rounded-t-xl bg-white/80 shadow-inner dark:bg-white/20" aria-hidden />
+        <div className="relative z-10 mb-4 h-36">
+          <DressedImage char="mochito" outfit={outfit} alt="" className="h-full" />
+          {muddy && <Mud fade={mudFade} />}
+        </div>
+        {bubbles.map((b) => (
+          <motion.span
+            key={b.id}
+            aria-hidden
+            className="pointer-events-none absolute z-20 size-6 rounded-full border-2 border-white bg-white/50"
+            style={{ left: `${b.x * 100}%`, top: `${b.y * 100}%` }}
+            initial={{ opacity: 0, transform: "translate(-50%, -50%) scale(0.95)" }}
+            animate={{ opacity: 1, transform: reduce ? "translate(-50%, -50%) scale(1)" : "translate(-50%, -80%) scale(1.15)" }}
+            transition={{ duration: 0.3, ease: EASE_OUT }}
+          />
+        ))}
+        {step === "listo" && !reduce && (
+          <motion.span aria-hidden className="pointer-events-none absolute right-6 top-6 z-20 text-primary" initial={{ opacity: 0, transform: "scale(0.95)" }} animate={{ opacity: 1, transform: "scale(1.1)" }} transition={{ duration: 0.4, ease: EASE_OUT }}>
+            <Sparkles className="size-8" />
+          </motion.span>
+        )}
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-secondary" role="progressbar" aria-label="Avance del baño" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}>
+        <div className="h-full rounded-full bg-primary" style={{ width: `${progress * 100}%`, transition: "width 200ms cubic-bezier(0.23, 1, 0.32, 1)" }} />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {step !== "listo" && (
+          <button type="button" onClick={() => rub(0.3 + ((rubs * 37) % 40) / 100, 0.35 + ((rubs * 23) % 40) / 100, true)} className="min-h-11 rounded-2xl border-2 border-primary px-5 text-sm font-semibold active:scale-[0.97]">
+            {step === "jabon" ? "Tallar" : "Cepillar"}
+          </button>
+        )}
+        <button type="button" onClick={onClose} className={cn("min-h-11 rounded-2xl px-5 text-sm font-semibold active:scale-[0.97]", step === "listo" ? "bg-primary text-primary-foreground" : "bg-secondary")}>
+          {step === "listo" ? "Volver" : "Dejarlo para después"}
+        </button>
+      </div>
     </div>
   );
 }

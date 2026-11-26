@@ -9,17 +9,19 @@ export interface MochitoStats {
   treats: number;
   games: number;
   walks: number;
+  baths?: number;
+  photos?: number;
   days: string[]; // días en que lo cuidaste
   walk_day?: string; // último día que salió de paseo
   xp_day?: string;
   xp_today?: number;
 }
 
-export type CareKind = "pet" | "treat" | "game" | "walk" | "trick";
+export type CareKind = "pet" | "treat" | "game" | "walk" | "trick" | "bath" | "photo";
 
 export const EMPTY_STATS: MochitoStats = { xp: 0, pets: 0, treats: 0, games: 0, walks: 0, days: [] };
 
-export const CARE_XP: Record<CareKind, number> = { pet: 2, treat: 4, game: 6, walk: 8, trick: 10 };
+export const CARE_XP: Record<CareKind, number> = { pet: 2, treat: 4, game: 6, walk: 8, trick: 10, bath: 6, photo: 2 };
 /** Tope de experiencia por día con cariños, galletas y juegos (el paseo y los trucos no cuentan). */
 export const DAILY_XP = 40;
 export const PET_XP_EVERY_MS = 5 * 60_000;
@@ -33,10 +35,12 @@ export function applyCare(stats: MochitoStats | undefined, kind: CareKind, now: 
   if (kind === "treat") s.treats++;
   if (kind === "game") s.games++;
   if (kind === "walk") { s.walks++; s.walk_day = day; }
+  if (kind === "bath") s.baths = (s.baths ?? 0) + 1;
+  if (kind === "photo") s.photos = (s.photos ?? 0) + 1;
 
   let gain = CARE_XP[kind];
   if (kind === "pet" && lastPet && now - lastPet < PET_XP_EVERY_MS) gain = 0;
-  if (kind === "pet" || kind === "treat" || kind === "game") {
+  if (kind === "pet" || kind === "treat" || kind === "game" || kind === "bath" || kind === "photo") {
     const today = s.xp_day === day ? (s.xp_today ?? 0) : 0;
     gain = Math.max(0, Math.min(gain, DAILY_XP - today));
     s.xp_day = day;
@@ -80,7 +84,7 @@ export const trickReady = (t: Trick, level: number) => level >= t.level;
 
 // ── Medallas ────────────────────────────────────────────────────────
 
-export interface MedalInput { stats: MochitoStats; tricks: string[]; level: number; things: number }
+export interface MedalInput { stats: MochitoStats; tricks: string[]; level: number; things: number; friends?: number }
 export interface Medal { id: string; name: string; desc: string; coins: number; check: (m: MedalInput) => boolean }
 
 export const MEDALS: Medal[] = [
@@ -98,6 +102,11 @@ export const MEDALS: Medal[] = [
   { id: "nivel-5", name: "Nivel 5", desc: "Lleva a Mochito al nivel 5.", coins: 10, check: (m) => m.level >= 5 },
   { id: "nivel-10", name: "Nivel 10", desc: "Lleva a Mochito al nivel 10.", coins: 20, check: (m) => m.level >= 10 },
   { id: "casita", name: "Su casita", desc: "Ponle cama, platito y juguete.", coins: 10, check: (m) => m.things >= 3 },
+  { id: "bano-1", name: "Rechinando de limpio", desc: "Báñalo por primera vez.", coins: 5, check: (m) => (m.stats.baths ?? 0) >= 1 },
+  { id: "bano-10", name: "Siempre limpiecito", desc: "Báñalo 10 veces.", coins: 10, check: (m) => (m.stats.baths ?? 0) >= 10 },
+  { id: "foto-5", name: "Fotógrafo", desc: "Tómale 5 fotos.", coins: 10, check: (m) => (m.stats.photos ?? 0) >= 5 },
+  { id: "amigo-1", name: "Primer amigo", desc: "Haz un amigo en el paseo.", coins: 10, check: (m) => (m.friends ?? 0) >= 1 },
+  { id: "amigos-todos", name: "Amigo de todos", desc: "Hazte amigo de todos los perritos del parque.", coins: 30, check: (m) => (m.friends ?? 0) >= FRIENDS.length },
 ];
 
 export const medalEventId = (id: string) => `mochito-medalla:${id}`;
@@ -180,4 +189,100 @@ export function hideRound(rnd: () => number, l: "facil" | "normal" | "dificil") 
 export function hideRoundScore(found: boolean, leftMs: number, totalMs: number, misses: number) {
   if (!found) return 0;
   return Math.max(0.3, Math.min(1, 0.6 + 0.4 * (leftMs / totalMs) - misses * 0.1));
+}
+
+// ── Baño y cepillado ────────────────────────────────────────────────
+
+const HOUR_MS = 3_600_000;
+/** Limpieza (0 a 100): baja en 3 días; con lodo del paseo queda en 0 hasta bañarlo. */
+export function cleanOf(care: { washed?: number; muddy?: boolean } | undefined, now: number) {
+  if (care?.muddy) return 0;
+  if (!care?.washed) return 60;
+  return Math.max(0, Math.min(100, Math.round(100 - ((now - care.washed) / HOUR_MS / 72) * 100)));
+}
+export const SCRUB_STEPS = 10; // pasadas para enjabonar y para cepillar
+
+// ── Amiguitos del parque ────────────────────────────────────────────
+
+export interface Friend { id: string; name: string; coat: string; ear: string; spot?: string; says: string }
+
+export const FRIENDS: Friend[] = [
+  { id: "panque", name: "Panqué", coat: "#e9c48f", ear: "#b9854c", says: "¡Hola! Huelo a vainilla, ¿y tú?" },
+  { id: "canela", name: "Canela", coat: "#c9763f", ear: "#8a4a22", says: "¿Jugamos a perseguirnos la cola?" },
+  { id: "pimienta", name: "Pimienta", coat: "#5b5b63", ear: "#2f2f35", spot: "#f4f4f4", says: "Yo cuido el parque. Es mi trabajo." },
+  { id: "chispa", name: "Chispa", coat: "#f6f0e4", ear: "#d7b98d", spot: "#c58a4b", says: "¡Corro más rápido que el viento!" },
+  { id: "nube", name: "Nube", coat: "#ffffff", ear: "#e3e3ea", says: "Me gusta dormir bajo los árboles." },
+  { id: "tamal", name: "Tamal", coat: "#a86d3c", ear: "#6e4322", spot: "#f0d7b0", says: "¿Tienes algo de comer? Pregunto nomás." },
+  { id: "rayo", name: "Rayo", coat: "#efd36b", ear: "#c49a2a", says: "¡Una pelota! ¿Dónde? ¿Dónde?" },
+  { id: "luna", name: "Luna", coat: "#3d3a4a", ear: "#23212b", spot: "#d8d3e8", says: "De noche veo las estrellas contigo." },
+];
+
+export const FRIEND_AT = 3; // encuentros para ser amigos
+
+/** En el paseo, a veces se encuentra a un perrito. Sale de la fecha, así no cambia en el día. */
+export function walkMeet(now: number): Friend | null {
+  const rnd = rng(`amigo:${dayKey(now)}`);
+  if (rnd() >= 0.55) return null;
+  return FRIENDS[Math.floor(rnd() * FRIENDS.length)];
+}
+export const friendsOf = (met: Record<string, number> | undefined) => FRIENDS.filter((f) => (met?.[f.id] ?? 0) >= FRIEND_AT);
+/** Qué amigo viene de visita al local hoy (si tienes amigos). */
+export function visitorOf(met: Record<string, number> | undefined, now: number): Friend | null {
+  const list = friendsOf(met);
+  if (!list.length) return null;
+  return list[Math.floor(rng(`visita:${dayKey(now)}`)() * list.length)];
+}
+
+// ── Ayudante en el local ────────────────────────────────────────────
+
+/** Lo que Mochito aporta en un turno de Dulce Co. según su nivel, sus trucos y sus amigos. */
+export function mochitoHelper(level: number, tricks: number, friends: number) {
+  return {
+    appeal: Math.min(8, 3 + Math.floor(level / 3)) + Math.min(3, friends),
+    patienceMs: Math.min(3000, tricks * 400),
+    tipBonus: Math.min(0.06, Math.round(level * 0.004 * 1000) / 1000),
+    findChance: Math.min(0.4, 0.1 + level * 0.02),
+  };
+}
+/** Si encuentra propinas debajo de las mesas al terminar el turno (y cuántas monedas). */
+export function helperFind(seed: string, chance: number) {
+  const rnd = rng(`ayuda:${seed}`);
+  return rnd() < chance ? 2 + Math.floor(rnd() * 5) : 0;
+}
+
+// ── Simón dice ──────────────────────────────────────────────────────
+
+export const SIMON_MOVES = ["sentarse", "pata", "girar", "saltar"] as const;
+export type SimonMove = (typeof SIMON_MOVES)[number];
+export const SIMON_ROUNDS = 6;
+export const simonStart = (l: "facil" | "normal" | "dificil") => (l === "facil" ? 2 : 3);
+export const simonStepMs = (l: "facil" | "normal" | "dificil") => (l === "facil" ? 950 : l === "dificil" ? 560 : 760);
+/** Una secuencia más larga en cada ronda; empieza igual que la anterior y suma un truco. */
+export function simonSeq(rnd: () => number, len: number): SimonMove[] {
+  return Array.from({ length: len }, () => SIMON_MOVES[Math.floor(rnd() * SIMON_MOVES.length)]);
+}
+export const simonScore = (roundsDone: number) => Math.max(0, Math.min(1, roundsDone / SIMON_ROUNDS));
+
+// ── Carrera al parque ───────────────────────────────────────────────
+
+export const RUN_MS = 30_000;
+export const JUMP_MS = 650;
+export const RUN_X = 0.16; // dónde va Mochito
+export const OBSTACLES = [
+  { id: "charco", name: "Charco", h: 0.06 },
+  { id: "piedra", name: "Piedra", h: 0.12 },
+  { id: "rama", name: "Rama", h: 0.1 },
+] as const;
+export const runSpec = (l: "facil" | "normal" | "dificil") => (l === "facil" ? { speed: 0.32, every: 1700 } : l === "dificil" ? { speed: 0.55, every: 1050 } : { speed: 0.42, every: 1350 });
+/** Altura del salto (0 a 0.3 de la cancha) a los `ms` de haber saltado. */
+export function jumpHeight(ms: number) {
+  if (ms < 0 || ms >= JUMP_MS) return 0;
+  const t = ms / JUMP_MS;
+  return 1.2 * t * (1 - t);
+}
+/** ¿Choca? El obstáculo está a la altura de Mochito y él no saltó lo suficiente. */
+export const collides = (x: number, h: number, jump: number) => Math.abs(x - RUN_X) < 0.045 && jump < h;
+export function runScore(cleared: number, hits: number) {
+  const total = cleared + hits;
+  return total ? Math.max(0, Math.min(1, cleared / total - hits * 0.03)) : 0;
 }

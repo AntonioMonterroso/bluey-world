@@ -29,10 +29,19 @@ export interface Profile extends SyncRow {
   journal_char?: string; // quién la escucha en el diario (si no, su personaje)
   mochito?: boolean; // false = Mochito escondido (por defecto siempre acompaña)
   mochito_outfit?: Record<string, string>; // ropa de Mochito: ranura → artículo
-  mochito_care?: { fed?: number; petted?: number; played?: number }; // última vez que comió, lo acariciaste y jugó
+  mochito_care?: { fed?: number; petted?: number; played?: number; washed?: number; muddy?: boolean }; // última vez que comió, lo acariciaste, jugó y se bañó; lodo del paseo
+  mochito_friends?: Record<string, number>; // perritos del parque: cuántas veces se encontraron
   mochito_stats?: import("../mochito-play").MochitoStats; // nivel, cuentas y días que lo cuidaste
   mochito_tricks?: string[]; // trucos que ya aprendió
   mochito_home?: { bed?: string; bowl?: string; toy?: string }; // sus cosas puestas (ids de la tienda)
+}
+
+/** Foto de Mochito (solo en este dispositivo, no se sincroniza). */
+export interface MochitoPhoto {
+  id: string;
+  at: number;
+  data: string; // imagen JPEG como data URL
+  scene: string;
 }
 
 /** Temporizador local (no se sincroniza). Se calcula con la hora de fin, así sobrevive a pantalla bloqueada. */
@@ -399,6 +408,7 @@ class BlueyDB extends Dexie {
   recipe_versions!: Table<RecipeVersion, string>;
   cook_log!: Table<CookLog, string>;
   timers!: Table<Timer, string>;
+  mochito_photos!: Table<MochitoPhoto, string>;
   products!: Table<Product, string>;
   price_history!: Table<PriceEntry, string>;
   expenses!: Table<Expense, string>;
@@ -492,6 +502,9 @@ class BlueyDB extends Dexie {
     });
     this.version(15).stores({
       mini_scores: "id, updated_at",
+    });
+    this.version(17).stores({
+      mochito_photos: "id, at",
     });
   }
 }
