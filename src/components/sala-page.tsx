@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Brain, Cake, Coins, ListOrdered, Search, ShoppingBasket, Timer, Trophy } from "lucide-react";
+import { Bone, Brain, Cake, Coins, ListOrdered, Search, ShoppingBasket, Timer, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CakeGame } from "@/components/cake-game";
 import { GuessGame, MemoryGame, Result, StepsGame, type Play } from "@/components/mini-games";
 import { CatchGame, ChangeGame } from "@/components/mini-games-2";
+import { MochitoGame } from "@/components/mochito-game";
+import { cameFromMochito, useClearMochitoGoto } from "@/components/mochito";
 import { OvenGame } from "@/components/oven-game";
 import { Stars } from "@/components/stars";
 import { requestFor, type CakeRequest } from "@/lib/game/cake";
@@ -16,6 +18,7 @@ import { useIsClient } from "@/lib/use-is-client";
 import { cn } from "@/lib/utils";
 
 const LIST: { id: MiniGame; text: string; icon: typeof Brain }[] = [
+  { id: "mochito", text: "Mochito atrapa premios y esquiva lo que le hace daño.", icon: Bone },
   { id: "pasos", text: "Pon en orden los pasos de tus recetas.", icon: ListOrdered },
   { id: "memoria", text: "Encuentra las parejas de ingredientes.", icon: Brain },
   { id: "adivina", text: "Pistas de ingredientes y a adivinar.", icon: Search },
@@ -36,7 +39,8 @@ function Inner() {
   const scores = useMiniScores();
   const challengeDone = useChallengeDone();
   const [level, setLevel] = useState<Level>(initialLevel);
-  const [game, setGame] = useState<MiniGame | null>(null);
+  const [game, setGame] = useState<MiniGame | null>(() => (cameFromMochito("juego") ? "mochito" : null));
+  useClearMochitoGoto();
   const [play, setPlay] = useState<Play>({ level: "normal" });
   const [score, setScore] = useState<number | null>(null);
   const [req, setReq] = useState<CakeRequest | null>(null);
@@ -59,6 +63,7 @@ function Inner() {
   if (game === "adivina") return <GuessGame key={k} recipes={recipes} play={play} onExit={exit} />;
   if (game === "atrapa") return <CatchGame key={k} play={play} onExit={exit} />;
   if (game === "cambio") return <ChangeGame key={k} play={play} onExit={exit} />;
+  if (game === "mochito") return <MochitoGame key={k} play={play} onExit={exit} />;
 
   return (
     <div className="flex max-w-5xl flex-col gap-6">

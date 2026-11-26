@@ -129,7 +129,7 @@ export function scoreGuess(correct: boolean, cluesUsed: number): number {
 // Tope bajo a propósito: lo que más rinde debe seguir siendo cocinar de verdad (una receta bien hecha da hasta 25 monedas).
 export const DAILY_COIN_CAP = 30;
 export const DAILY_XP_CAP = 40;
-export const GAMES = ["pasos", "memoria", "adivina", "torta", "horno", "atrapa", "cambio"] as const;
+export const GAMES = ["pasos", "memoria", "adivina", "torta", "horno", "atrapa", "cambio", "mochito"] as const;
 export type MiniGame = (typeof GAMES)[number];
 
 export interface MiniReward { xp: number; coins: number; capped: boolean }
@@ -154,6 +154,9 @@ export const ovenPeriod = (l: Level) => (l === "facil" ? 2600 : l === "dificil" 
 
 export const CATCH_GOOD = ["harina", "huevo", "azúcar", "mantequilla", "fresa", "chocolate", "leche", "canela"];
 export const CATCH_BAD = ["calcetín", "piedra", "zapato"];
+// Para Mochito: premios de perro, y lo que a los perros les hace daño.
+export const DOG_GOOD = ["hueso", "galleta", "zanahoria", "manzana", "pollo"];
+export const DOG_BAD = ["chocolate", "uvas", "cebolla"];
 export const CATCH_MS = 30_000;
 /** Cada cuánto cae algo y qué tan rápido, según la dificultad. */
 export const catchSpec = (l: Level) => (l === "facil" ? { every: 900, speed: 0.22, bad: 0.15 } : l === "dificil" ? { every: 520, speed: 0.4, bad: 0.3 } : { every: 700, speed: 0.3, bad: 0.22 });

@@ -89,3 +89,34 @@ describe("Mochito", () => {
     expect(withDog.mochito).toBe(MOCHITO_APPEAL);
   });
 });
+
+describe("Mochito: ánimo y avisos", () => {
+  it("tiene hambre si no come, sueño de noche y feliz si lo cuidas", async () => {
+    const { mochitoState } = await import("@/lib/mochito");
+    const noon = new Date(2026, 10, 26, 12).getTime();
+    expect(mochitoState(undefined, noon).mood).toBe("hambre");
+    expect(mochitoState({ fed: noon, petted: noon, played: noon }, noon).mood).toBe("feliz");
+    expect(mochitoState({ fed: noon - 3_600_000 }, noon).full).toBe(true);
+    expect(mochitoState({ fed: noon, played: noon }, new Date(2026, 10, 26, 23).getTime()).mood).toBe("sueno");
+  });
+  it("avisa pagos, pedidos, temporizadores y el diario", async () => {
+    const { mochitoNews } = await import("@/lib/mochito");
+    const now = new Date(2026, 10, 26, 19).getTime();
+    const day = 86_400_000;
+    const news = mochitoNews({
+      timers: [{ id: "t", label: "Pastel", status: "ringing", end_at: null }],
+      payments: [
+        { id: "p", name: "Renta", amount: 1800, kind: "gasto", next_due: now + day, active: true },
+        { id: "q", name: "Luz", amount: 200, kind: "gasto", next_due: now + 10 * day, active: true },
+      ],
+      orders: [
+        { id: "o", client: "Ana", item: "Torta", due: now, status: "confirmado" },
+        { id: "x", client: "Bea", item: "Pie", due: now, status: "entregado" },
+      ],
+      journal: [],
+      fmt: (n) => `Q ${n.toFixed(2)}`,
+    }, now);
+    expect(news.map((n) => n.id)).toEqual(["t-t", "o-o", "p-p", "diario"]);
+    expect(news[2].text).toBe("Toca pagar Renta (Q 1800.00) mañana.");
+  });
+});

@@ -144,7 +144,7 @@ function Inner() {
         <div className="flex flex-col items-center gap-2">
           <div className={cn("flex h-48 items-end justify-center", dictation.listening && "motion-safe:animate-pulse")}>
             <DressedImage char={shownChar} outfit={shownChar === profile.character ? profile.outfit : undefined} className="h-44" />
-            <Mochito className="-ml-4 h-20 shrink-0" bubble="right" />
+            <Mochito className="-ml-4 h-20 shrink-0" />
           </div>
         </div>
         <div className="flex min-w-0 flex-col gap-4">

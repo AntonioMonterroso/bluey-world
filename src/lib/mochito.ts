@@ -230,3 +230,129 @@ export function mochitoLine(hour: number, pick: number) {
   const all = [...timed, ...ALWAYS];
   return all[Math.min(all.length - 1, Math.floor(pick * all.length))];
 }
+
+// ── Cómo está Mochito ───────────────────────────────────────────────
+
+export interface MochitoCare { fed?: number; petted?: number; played?: number }
+export type MochitoMood = "sueno" | "hambre" | "aburrido" | "feliz" | "contento";
+
+const HOUR = 3_600_000;
+const level = (since: number | undefined, now: number, hoursToEmpty: number) =>
+  since ? Math.max(0, Math.min(100, Math.round(100 - ((now - since) / HOUR / hoursToEmpty) * 100))) : 0;
+
+export const FEED_EVERY_H = 3; // antes de esto ya está lleno
+
+/** Barriga, cariño y diversión (0 a 100) y su ánimo según la hora y lo que has hecho con él. */
+export function mochitoState(care: MochitoCare | undefined, now: number) {
+  const c = care ?? {};
+  const belly = level(c.fed, now, 10);
+  const love = level(c.petted, now, 12);
+  const fun = level(c.played, now, 24);
+  const hour = new Date(now).getHours();
+  const mood: MochitoMood =
+    hour >= 22 || hour < 6 ? "sueno"
+    : belly < 30 ? "hambre"
+    : fun < 25 ? "aburrido"
+    : love >= 50 && belly >= 50 ? "feliz"
+    : "contento";
+  const full = !!c.fed && now - c.fed < FEED_EVERY_H * HOUR;
+  return { belly, love, fun, mood, full };
+}
+
+export const MOOD_LABEL: Record<MochitoMood, string> = {
+  sueno: "Con sueño",
+  hambre: "Con hambre",
+  aburrido: "Aburrido",
+  feliz: "Feliz",
+  contento: "Contento",
+};
+
+const MOOD_LINES: Record<MochitoMood, string[]> = {
+  sueno: ["Mmm… ya me estoy quedando dormido.", "Ya es hora de dormir. ¿Tú también?"],
+  hambre: ["Mi pancita hace ruido… ¿me das una galleta?", "Huelo algo rico y yo con hambre."],
+  aburrido: ["¿Jugamos un ratito? Yo atrapo las galletas.", "Estoy aburrido. ¡Juguemos!"],
+  feliz: ["¡Estoy feliz de estar contigo!", "Panza llena, corazón contento."],
+  contento: ["Aquí estoy, contento a tu lado."],
+};
+
+/** Lo que dice al tocarlo: a veces cómo se siente, si no una frase según la hora. */
+export function mochitoSays(mood: MochitoMood, hour: number, pick: number) {
+  if (mood !== "contento" && mood !== "feliz" && pick < 0.5) {
+    const lines = MOOD_LINES[mood];
+    return lines[Math.floor(pick * 2 * lines.length) % lines.length];
+  }
+  return mochitoLine(hour, pick);
+}
+
+export const actionLine = {
+  petted: ["¡Más, más! Justo ahí detrás de la oreja.", "Mmm, qué rico. Te quiero mucho.", "¡Guau! Me encantan tus cariños."],
+  fed: ["¡Ñam! Qué rica galleta. Gracias.", "¡Delicioso! Ya tengo energía.", "¡Ñam, ñam! La mejor galleta del mundo."],
+  full: ["Ya estoy lleno, gracias. Más tarde me das otra.", "Si como más, ruedo como pelota."],
+};
+
+// ── Avisos ──────────────────────────────────────────────────────────
+
+export interface MochitoNews { id: string; text: string; href: string; urgent: boolean }
+
+export interface NewsInput {
+  timers: { id: string; label: string; status: "running" | "paused" | "ringing"; end_at: number | null }[];
+  payments: { id: string; name: string; amount: number; kind: "gasto" | "ingreso"; next_due: number; active: boolean }[];
+  orders: { id: string; client: string; item: string; due: number; status: string }[];
+  journal: { at: number }[];
+  fmt: (n: number) => string;
+}
+
+const DAY = 86_400_000;
+const dayStart = (ms: number) => { const d = new Date(ms); return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); };
+const daysFrom = (due: number, now: number) => Math.round((dayStart(due) - dayStart(now)) / DAY);
+const whenLabel = (n: number) => (n < 0 ? `hace ${-n} ${n === -1 ? "día" : "días"}` : n === 0 ? "hoy" : n === 1 ? "mañana" : `en ${n} días`);
+
+/** Lo que Mochito te recuerda: temporizadores, pagos que vienen, pedidos por entregar y tu diario. */
+export function mochitoNews(input: NewsInput, now: number): MochitoNews[] {
+  const out: MochitoNews[] = [];
+
+  for (const t of input.timers) {
+    const name = t.label || "tu temporizador";
+    if (t.status === "ringing") out.push({ id: `t-${t.id}`, text: `¡Ya sonó «${name}»! Ve a ver el horno.`, href: "/temporizadores", urgent: true });
+    else if (t.status === "running" && t.end_at) {
+      const min = Math.max(1, Math.ceil((t.end_at - now) / 60_000));
+      out.push({ id: `t-${t.id}`, text: `A «${name}» le ${min === 1 ? "falta 1 minuto" : `faltan ${min} minutos`}.`, href: "/temporizadores", urgent: false });
+    }
+  }
+
+  for (const o of input.orders) {
+    if (["entregado", "pagado", "cancelado"].includes(o.status)) continue;
+    const n = daysFrom(o.due, now);
+    if (n > 2) continue;
+    const who = o.client ? ` a ${o.client}` : "";
+    out.push({
+      id: `o-${o.id}`,
+      text: n < 0 ? `El pedido «${o.item}»${who} se debía entregar ${whenLabel(n)}.` : `Entregas «${o.item}»${who} ${whenLabel(n)}.`,
+      href: "/mi-cocina",
+      urgent: n <= 0,
+    });
+  }
+
+  for (const p of input.payments) {
+    if (!p.active) continue;
+    const n = daysFrom(p.next_due, now);
+    if (n > 3) continue;
+    const money = input.fmt(p.amount);
+    out.push({
+      id: `p-${p.id}`,
+      text: p.kind === "gasto"
+        ? (n < 0 ? `Se pasó el pago de ${p.name} (${money}), ${whenLabel(n)}.` : `Toca pagar ${p.name} (${money}) ${whenLabel(n)}.`)
+        : (n < 0 ? `Ya debías recibir ${p.name} (${money}).` : `Te entra ${p.name} (${money}) ${whenLabel(n)}.`),
+      href: "/dinero/recurrentes",
+      urgent: p.kind === "gasto" && n <= 0,
+    });
+  }
+
+  const today = dayStart(now);
+  const wroteToday = input.journal.some((e) => e.at >= today);
+  if (!wroteToday && new Date(now).getHours() >= 18) {
+    out.push({ id: "diario", text: "Todavía no me cuentas cómo te fue hoy.", href: "/diario", urgent: false });
+  }
+
+  return out.sort((a, b) => Number(b.urgent) - Number(a.urgent));
+}

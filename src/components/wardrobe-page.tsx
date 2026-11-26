@@ -4,11 +4,12 @@ import { useState } from "react";
 import { Coins, Dices, Pencil, Save, Shirt, Star, Sun, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DressedImage } from "@/components/dressed-image";
+import { cameFromMochito, useClearMochitoGoto } from "@/components/mochito";
 import { WearTuner } from "@/components/wear-tuner";
 import { WardrobeStage } from "@/components/wardrobe-stage";
 import { inputClass, labelClass } from "@/components/ui/fields";
 import { useStaff } from "@/lib/bakery-team";
-import { getCharacter } from "@/lib/characters";
+import { MOCHITO, getCharacter } from "@/lib/characters";
 import { upsertRow } from "@/lib/db/repo";
 import { updateProfile, useProfile } from "@/lib/db/profile";
 import type { BakeryStaff } from "@/lib/db/db";
@@ -28,16 +29,18 @@ function Inner() {
   const { ready, profile } = useProfile();
   const game = useGame();
   const staff = useStaff();
-  const [target, setTarget] = useState<"me" | string>("me"); // a quién vistes: tú o alguien del equipo
+  const [target, setTarget] = useState<"me" | "mochito" | string>(() => (cameFromMochito("vestir") ? "mochito" : "me")); // a quién vistes: tú, Mochito o alguien del equipo
+  useClearMochitoGoto();
   const [slot, setSlot] = useState<WearSlot>("head");
   const [tryOn, setTryOn] = useState<Record<string, string | null>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [lookName, setLookName] = useState("");
   if (!ready || !game.ready || !staff) return null;
 
-  const member: BakeryStaff | undefined = target === "me" ? undefined : staff.find((s) => s.id === target);
-  const charId = member ? member.char : profile.character;
-  const outfit: Outfit = (member ? member.outfit : profile.outfit) ?? {};
+  const isDog = target === "mochito";
+  const member: BakeryStaff | undefined = target === "me" || isDog ? undefined : staff.find((s) => s.id === target);
+  const charId = isDog ? MOCHITO.id : member ? member.char : profile.character;
+  const outfit: Outfit = (isDog ? profile.mochito_outfit : member ? member.outfit : profile.outfit) ?? {};
   const looks = profile.looks ?? [];
   const ch = getCharacter(charId);
   const dressable = anchorsFor(charId) !== null;
@@ -50,7 +53,8 @@ function Inner() {
   const trying = Object.keys(tryOn).length > 0;
 
   async function setOutfit(next: Outfit) {
-    if (member) await upsertRow<BakeryStaff>("bakery_staff", { ...member, outfit: next });
+    if (isDog) await updateProfile({ mochito_outfit: next });
+    else if (member) await upsertRow<BakeryStaff>("bakery_staff", { ...member, outfit: next });
     else await updateProfile({ outfit: next });
   }
 
@@ -136,6 +140,9 @@ function Inner() {
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="radiogroup" aria-label="A quién vistes">
           <button type="button" role="radio" aria-checked={target === "me"} onClick={() => { setTarget("me"); setTryOn({}); }} className={cn("min-h-11 shrink-0 rounded-full border-2 px-5 text-sm font-semibold", target === "me" ? "border-primary bg-primary text-primary-foreground" : "border-transparent bg-card")}>
             Yo · {getCharacter(profile.character).name}
+          </button>
+          <button type="button" role="radio" aria-checked={isDog} onClick={() => { setTarget("mochito"); setTryOn({}); }} className={cn("min-h-11 shrink-0 rounded-full border-2 px-5 text-sm font-semibold", isDog ? "border-primary bg-primary text-primary-foreground" : "border-transparent bg-card")}>
+            Mochito
           </button>
           {staff.map((s) => (
             <button key={s.id} type="button" role="radio" aria-checked={target === s.id} onClick={() => { setTarget(s.id); setTryOn({}); }} className={cn("min-h-11 shrink-0 rounded-full border-2 px-5 text-sm font-semibold", target === s.id ? "border-primary bg-primary text-primary-foreground" : "border-transparent bg-card")}>

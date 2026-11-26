@@ -44,6 +44,7 @@ export const ANCHORS: Record<string, Anchors> = {
   rusty: A(0.5, 0.12, 0.35, 0.45, 0.48, 0.6, 0.85, 0.38),
   "bluey-bebe": A(0.52, 0.12, 0.48, 0.35, 0.52, 0.55, 0.78, 0.55),
   "bluey-chica": A(0.5, 0.2, 0.42, 0.38, 0.55, 0.52, 0.8, 0.55),
+  mochito: A(0.6, 0.04, 0.5, 0.24, 0.53, 0.42, 0.86, 0.48),
 };
 
 // Pies medidos sobre cada dibujo (fy = base de los pies, fx = centro, fs = separación). Donde no hay medida se calcula desde el torso.
@@ -57,6 +58,7 @@ const FEET: Record<string, Pick<Anchors, "fx" | "fs" | "fy">> = {
   missy: { fx: 0.52, fs: 0.117, fy: 0.96 },
   winton: { fx: 0.455, fs: 0.124, fy: 0.97 },
   "bluey-chica": { fx: 0.572, fs: 0.127, fy: 0.975 },
+  mochito: { fx: 0.55, fs: 0.13, fy: 0.95 },
 };
 for (const [id, f] of Object.entries(FEET)) Object.assign(ANCHORS[id], f);
 // Manos que no caen donde se calcula (brazos levantados).

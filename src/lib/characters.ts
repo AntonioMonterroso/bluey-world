@@ -32,7 +32,8 @@ export type CharacterId = (typeof CHARACTERS)[number]["id"];
 export const DEFAULT_CHARACTER: CharacterId = "bluey";
 export const CHARACTER_STORAGE_KEY = "bw-character";
 
-export function getCharacter(id: string) {
+export function getCharacter(id: string): { id: string; name: string; src: string; w: number; h: number } {
+  if (id === MOCHITO.id) return MOCHITO;
   return CHARACTERS.find((c) => c.id === id) ?? CHARACTERS[0];
 }
 
