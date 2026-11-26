@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { playSound } from "@/lib/alarm";
 import { updateProfile, useProfile } from "@/lib/db/profile";
 import {
-  CHARACTER_ITEMS, FRAME_ITEMS, SOUND_ITEMS, STICKER_ITEMS, frameClass, owns, type ShopItem,
+  CHARACTER_ITEMS, FRAME_ITEMS, PET_ITEMS, SOUND_ITEMS, STICKER_ITEMS, frameClass, owns, type ShopItem,
 } from "@/lib/game/shop";
+import { ThingArt } from "@/components/mochito-things";
+import { setMochitoThing } from "@/lib/mochito-actions";
 import { buyItem, useGame } from "@/lib/game/use-game";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +24,8 @@ function ShopAction({ item, g, profile, onBuy }: { item: ShopItem; g: Game; prof
   const equipped =
     (item.kind === "character" && item.id === `char:${profile.character}`) ||
     (item.kind === "sound" && item.id === `sound:${profile.sound ?? "campana"}`) ||
-    (item.kind === "frame" && item.id === `frame:${profile.frame ?? ""}`);
+    (item.kind === "frame" && item.id === `frame:${profile.frame ?? ""}`) ||
+    (item.kind === "pet" && !!item.petSlot && profile.mochito_home?.[item.petSlot] === item.id);
 
   if (!mine) {
     return (
@@ -41,6 +44,7 @@ function ShopAction({ item, g, profile, onBuy }: { item: ShopItem; g: Game; prof
         if (item.kind === "character") void updateProfile({ character: item.id.slice(5) });
         if (item.kind === "sound") { void updateProfile({ sound: item.id.slice(6) }); playSound(item.id.slice(6)); }
         if (item.kind === "frame") void updateProfile({ frame: item.id.slice(6) });
+        if (item.kind === "pet" && item.petSlot) void setMochitoThing(item.petSlot, item.id);
       }}
     >
       {equipped ? "En uso" : "Usar"}
@@ -70,7 +74,8 @@ export function ShopPage() {
 
   async function buy(item: ShopItem) {
     const problem = await buyItem(item);
-    setMessage(problem ?? `¡Es tuyo! ${item.name}`);
+    setMessage(problem ?? (item.kind === "pet" ? `¡Es de Mochito! ${item.name}` : `¡Es tuyo! ${item.name}`));
+    if (!problem && item.kind === "pet" && item.petSlot) await setMochitoThing(item.petSlot, item.id);
   }
 
   return (
@@ -90,6 +95,18 @@ export function ShopPage() {
           {CHARACTER_ITEMS.map((i) => (
             <ShopCard key={i.id} item={i} g={g} profile={profile} onBuy={buy}>
               <Image src={i.src!} alt="" width={i.w!} height={i.h!} className={cn("h-full w-auto object-contain", !owns(i, g.ownedIds) && "opacity-60 grayscale")} />
+            </ShopCard>
+          ))}
+        </ul>
+      </section>
+
+      <section aria-labelledby="para-mochito" className="flex flex-col gap-3">
+        <h2 id="para-mochito" className="text-2xl">Para Mochito</h2>
+        <p className="text-sm text-muted-foreground">Su cama, su platito y sus juguetes salen junto a él en su rincón y en tu local.</p>
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {PET_ITEMS.map((i) => (
+            <ShopCard key={i.id} item={i} g={g} profile={profile} onBuy={buy}>
+              <div className={cn("flex h-20 w-28 items-center justify-center", !owns(i, g.ownedIds) && "opacity-60 grayscale")}><ThingArt id={i.id} /></div>
             </ShopCard>
           ))}
         </ul>

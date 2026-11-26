@@ -30,6 +30,9 @@ export interface Profile extends SyncRow {
   mochito?: boolean; // false = Mochito escondido (por defecto siempre acompaña)
   mochito_outfit?: Record<string, string>; // ropa de Mochito: ranura → artículo
   mochito_care?: { fed?: number; petted?: number; played?: number }; // última vez que comió, lo acariciaste y jugó
+  mochito_stats?: import("../mochito-play").MochitoStats; // nivel, cuentas y días que lo cuidaste
+  mochito_tricks?: string[]; // trucos que ya aprendió
+  mochito_home?: { bed?: string; bowl?: string; toy?: string }; // sus cosas puestas (ids de la tienda)
 }
 
 /** Temporizador local (no se sincroniza). Se calcula con la hora de fin, así sobrevive a pantalla bloqueada. */

@@ -3,7 +3,7 @@ import { CHARACTERS } from "@/lib/characters";
 import { DECOR_ITEMS } from "@/lib/game/decor";
 import { WEAR_ITEMS } from "@/lib/game/wardrobe";
 
-export type ShopKind = "character" | "sound" | "frame" | "sticker" | "decor" | "wear";
+export type ShopKind = "character" | "sound" | "frame" | "sticker" | "decor" | "wear" | "pet";
 
 export interface ShopItem {
   id: string; // con prefijo: char:, sound:, frame:, sticker:
@@ -15,6 +15,7 @@ export interface ShopItem {
   w?: number;
   h?: number;
   event?: string; // solo se consigue cumpliendo este evento
+  petSlot?: "bed" | "bowl" | "toy"; // cosas de Mochito: dónde van
 }
 
 const CHAR_PRICE: Record<string, number> = {
@@ -65,7 +66,20 @@ export const STICKER_ITEMS: ShopItem[] = [
   { id: "sticker:fiesta", name: "Fiesta", icon: PartyPopper, price: 9999, event: "Año Nuevo" },
 ].map((s) => ({ ...s, kind: "sticker" as const }));
 
-export const ALL_ITEMS: ShopItem[] = [...CHARACTER_ITEMS, ...SOUND_ITEMS, ...FRAME_ITEMS, ...STICKER_ITEMS, ...DECOR_ITEMS, ...WEAR_ITEMS];
+/** Las cosas de Mochito: cama, platito y juguetes. */
+export const PET_ITEMS: ShopItem[] = [
+  { id: "pet:cama-nube", name: "Cama de nube", price: 40, petSlot: "bed" as const },
+  { id: "pet:cama-corazon", name: "Cama de corazón", price: 60, petSlot: "bed" as const },
+  { id: "pet:cama-rey", name: "Cama de rey", price: 90, petSlot: "bed" as const },
+  { id: "pet:plato", name: "Platito", price: 20, petSlot: "bowl" as const },
+  { id: "pet:plato-hueso", name: "Platito de hueso", price: 35, petSlot: "bowl" as const },
+  { id: "pet:pelota", name: "Pelota", price: 15, petSlot: "toy" as const },
+  { id: "pet:cuerda", name: "Cuerda", price: 20, petSlot: "toy" as const },
+  { id: "pet:hueso", name: "Hueso de juguete", price: 25, petSlot: "toy" as const },
+  { id: "pet:peluche", name: "Peluche", price: 30, petSlot: "toy" as const },
+].map((p) => ({ ...p, kind: "pet" as const }));
+
+export const ALL_ITEMS: ShopItem[] = [...CHARACTER_ITEMS, ...SOUND_ITEMS, ...FRAME_ITEMS, ...STICKER_ITEMS, ...DECOR_ITEMS, ...WEAR_ITEMS, ...PET_ITEMS];
 
 export const isFree = (item: ShopItem) => item.price === 0;
 export const owns = (item: ShopItem, ownedIds: Set<string>) => isFree(item) || ownedIds.has(item.id);

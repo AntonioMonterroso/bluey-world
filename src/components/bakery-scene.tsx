@@ -193,7 +193,7 @@ export function BakeryScene({
       </div>
 
       {/* Mochito, en el piso junto al mostrador */}
-      <Mochito interactive={false} className="absolute z-20" style={{ left: "16%", bottom: "2%", height: "22%" }} />
+      <Mochito interactive={false} home className="absolute z-20" style={{ left: "16%", bottom: "2%", height: "22%" }} />
 
       {/* Mostrador con vitrina */}
       <div className="absolute z-10 left-[23%] w-[54%]" style={{ bottom: "6%", height: "35%" }}>

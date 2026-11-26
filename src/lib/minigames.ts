@@ -10,7 +10,7 @@ import { writeAwards } from "@/lib/game/use-game";
 import { useGame } from "@/lib/game/use-game";
 import { useRecipes } from "@/lib/recipes";
 
-const NAMES: Record<MiniGame, string> = { pasos: "Ordena los pasos", memoria: "Memoria de ingredientes", adivina: "Adivina el postre", torta: "Decora la torta", horno: "Horno perfecto", atrapa: "Atrapa ingredientes", cambio: "Cuenta el cambio", mochito: "Galletas para Mochito" };
+const NAMES: Record<MiniGame, string> = { pasos: "Ordena los pasos", memoria: "Memoria de ingredientes", adivina: "Adivina el postre", torta: "Decora la torta", horno: "Horno perfecto", atrapa: "Atrapa ingredientes", cambio: "Cuenta el cambio", mochito: "Galletas para Mochito", pelota: "Atrapa la pelota", escondidas: "Escondidas con Mochito" };
 export const gameName = (g: MiniGame) => NAMES[g];
 
 /** Tus recetas en el formato simple que usan los minijuegos. */

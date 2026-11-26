@@ -5,7 +5,8 @@ import { Apple, Bone, Carrot, Cookie, Drumstick, Grape, Candy, CircleDot } from 
 import { Button } from "@/components/ui/button";
 import { DressedImage } from "@/components/dressed-image";
 import { DEFAULT_PLAY, Result, rngFor, type Play } from "@/components/mini-games";
-import { updateProfile, useProfile } from "@/lib/db/profile";
+import { useProfile } from "@/lib/db/profile";
+import { mochitoDo } from "@/lib/mochito-actions";
 import { CATCH_MS, DOG_BAD, DOG_GOOD, catchScore, catchSpec } from "@/lib/game/minigames";
 import { sfx } from "@/lib/sfx";
 import { cn } from "@/lib/utils";
@@ -69,11 +70,7 @@ export function MochitoGame({ onExit, play = DEFAULT_PLAY }: { onExit: () => voi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [round]);
 
-  const care = profile.mochito_care;
-  useEffect(() => {
-    if (over) void updateProfile({ mochito_care: { ...care, played: Date.now() } });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [over]);
+  useEffect(() => { if (over) void mochitoDo("game"); }, [over]);
 
   function moveTo(clientX: number) {
     const r = arena.current?.getBoundingClientRect();
