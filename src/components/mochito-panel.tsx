@@ -12,6 +12,8 @@ import { updateProfile, useProfile } from "@/lib/db/profile";
 import { PET_ITEMS, owns, type ShopItem } from "@/lib/game/shop";
 import { buyItem, useGame } from "@/lib/game/use-game";
 import { MOOD_LABEL, actionLine, mochitoSays, mochitoState, type MochitoNews } from "@/lib/mochito";
+import { LEVEL_UP, MEDAL_WON, THING_NEW, TRICK_DONE, WALK_GO } from "@/lib/mochito-lines";
+import { useMochitoDid } from "@/components/mochito";
 import { mochitoDo, mochitoWalk, setMochitoThing } from "@/lib/mochito-actions";
 import { EMPTY_STATS, MEDALS, TEACH_TRIES, TRICKS, earnedMedals, mochitoLevel, trickReady, walkedToday, type WalkFind } from "@/lib/mochito-play";
 import { sfx } from "@/lib/sfx";
@@ -78,11 +80,14 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
   const [games, setGames] = useState(false);
   const [walk, setWalk] = useState<{ phase: "going" | "done"; find?: WalkFind } | null>(null);
   const walkRef = useRef<{ arrived: boolean; find?: WalkFind }>({ arrived: false });
-  const said = line ?? (news[0]?.text ?? mochitoSays(state.mood, new Date(now).getHours(), (now % 997) / 997));
+  const did = useMochitoDid(open ? now : 0);
+  const ctx = { now, birthday: profile.birthday, did };
+  const said = line ?? (news[0]?.text ?? mochitoSays(state.mood, new Date(now).getHours(), (now % 997) / 997, ctx));
 
   async function after(kind: Parameters<typeof mochitoDo>[0], extra?: { trick?: string }) {
     const r = await mochitoDo(kind, extra);
-    if (r.after > r.before) { sfx("success"); setLine(`¡Subí al nivel ${r.after}! ${TRICKS.some((t) => t.level === r.after) ? "Ya puedo aprender un truco nuevo." : "Gracias por cuidarme."}`); }
+    if (r.after > r.before) { sfx("success"); setLine(`${pickOf(LEVEL_UP)} Ya soy nivel ${r.after}.${TRICKS.some((t) => t.level === r.after) ? " ¡Y puedo aprender un truco nuevo!" : ""}`); }
+    else if (r.medals.length) { sfx("success"); setLine(`${pickOf(MEDAL_WON)} Es «${r.medals[0]}».`); }
   }
   function pet() {
     setHearts((n) => n + 1);
@@ -96,11 +101,11 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
     setLine(pickOf(actionLine.fed));
     void after("treat");
   }
-  function talk() { setLine(mochitoSays(state.mood, new Date().getHours(), Math.random())); sfx("click"); }
+  function talk() { setLine(mochitoSays(state.mood, new Date().getHours(), Math.random(), { ...ctx, now: Date.now() })); sfx("click"); }
   async function goWalk() {
     walkRef.current = { arrived: false };
     setWalk({ phase: "going" });
-    setLine("¡Paseo! ¡Paseo! Voy por mi correa.");
+    setLine(pickOf(WALK_GO));
     sfx("door");
     const find = await mochitoWalk();
     walkRef.current.find = find;
@@ -112,15 +117,15 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
     setWalk((w) => (w ? { ...w, phase: "done" } : w));
     if (walkRef.current.find) tell(walkRef.current.find);
   }
-  function tell(find: WalkFind) {
+  function tell(find: WalkFind & { medals?: string[]; levelUp?: number }) {
     sfx(find.kind === "coins" ? "coin" : "success");
-    setLine(find.text);
+    setLine(`${find.text}${find.levelUp ? ` ¡Y subí al nivel ${find.levelUp}!` : find.medals?.length ? ` ¡Y gané la medalla «${find.medals[0]}»!` : ""}`);
   }
   function doTrick(id: string) {
     const t = TRICKS.find((x) => x.id === id)!;
     setMove({ id, n: (move?.n ?? 0) + 1 });
     sfx("click");
-    setLine(t.says);
+    setLine(pickOf([t.says, t.says, t.says, ...TRICK_DONE]));
   }
   function teach(id: string) {
     const n = (practice[id] ?? 0) + 1;
@@ -319,8 +324,8 @@ function ThingsTab({ g, home, onLine }: { g: ReturnType<typeof useGame>; home?: 
     if (problem) { setMsg(problem); return; }
     sfx("cash");
     setMsg(`¡Es suyo! ${item.name}.`);
-    await setMochitoThing(item.petSlot!, item.id);
-    onLine(`¡Mi ${item.name.toLowerCase()}! Gracias, me encanta.`);
+    const medals = await setMochitoThing(item.petSlot!, item.id);
+    onLine(medals.length ? `${pickOf(MEDAL_WON)} Es «${medals[0]}».` : `¡Mi ${item.name.toLowerCase()}! ${pickOf(THING_NEW)}`);
   }
   return (
     <div role="tabpanel" className="flex flex-col gap-4">
@@ -342,7 +347,7 @@ function ThingsTab({ g, home, onLine }: { g: ReturnType<typeof useGame>; home?: 
                   <div className={cn("flex h-14 w-full items-center justify-center", !mine && "opacity-60 grayscale")}><ThingArt id={i.id} className="max-h-14" /></div>
                   <p className="text-center text-xs font-semibold leading-tight">{i.name}</p>
                   {mine ? (
-                    <button type="button" onClick={() => void setMochitoThing(slot, on ? undefined : i.id)} className={cn("min-h-11 w-full rounded-2xl text-sm font-semibold active:scale-[0.97]", on ? "bg-secondary" : "bg-primary text-primary-foreground")}>
+                    <button type="button" onClick={() => { void setMochitoThing(slot, on ? undefined : i.id).then((m) => { if (!on) onLine(m.length ? `${pickOf(MEDAL_WON)} Es «${m[0]}».` : pickOf(THING_NEW)); }); }} className={cn("min-h-11 w-full rounded-2xl text-sm font-semibold active:scale-[0.97]", on ? "bg-secondary" : "bg-primary text-primary-foreground")}>
                       {on ? "Quitar" : "Poner"}
                     </button>
                   ) : (

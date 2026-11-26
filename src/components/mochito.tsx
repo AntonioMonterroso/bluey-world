@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
 import { motion, useReducedMotion } from "motion/react";
 import { Gamepad2, Heart, Moon, Smile, UtensilsCrossed } from "lucide-react";
 import { DressedImage } from "@/components/dressed-image";
 import { MochitoPanel } from "@/components/mochito-panel";
 import { MochitoHome } from "@/components/mochito-things";
+import { db } from "@/lib/db/db";
 import { useProfile } from "@/lib/db/profile";
+import type { DidKind } from "@/lib/mochito-lines";
 import { useJournal } from "@/lib/journal";
 import { useOrders } from "@/lib/kitchen";
 import { MOOD_LABEL, mochitoNews, mochitoState, type MochitoMood } from "@/lib/mochito";
@@ -37,6 +40,29 @@ export function useMochitoNews(now: number) {
   const fmt = useMoney();
   if (!timers || !payments || !orders || !journal || !now) return [];
   return mochitoNews({ timers, payments, orders, journal, fmt }, now);
+}
+
+/** Lo que hiciste hoy (cocinar, anotar, diario, pedidos, recetas), para que Mochito lo comente. */
+export function useMochitoDid(now: number): DidKind[] | undefined {
+  return useLiveQuery(async () => {
+    if (!now) return undefined;
+    const d = new Date(now);
+    const from = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const alive = <T extends { deleted_at?: number | null }>(r: T) => !r.deleted_at;
+    const [cooks, money, journal, orders, recipes] = await Promise.all([
+      db.cook_log.where("cooked_at").aboveOrEqual(from).toArray(),
+      db.expenses.toArray(), db.journal.toArray(), db.client_orders.toArray(), db.recipes.toArray(),
+    ]);
+    const out: DidKind[] = [];
+    if (cooks.some(alive)) out.push("cooked");
+    const today = money.filter((e) => alive(e) && e.date >= from);
+    if (today.some((e) => (e.kind ?? "gasto") === "gasto")) out.push("spent");
+    if (today.some((e) => e.kind === "ingreso")) out.push("earned");
+    if (journal.some((j) => alive(j) && j.at >= from)) out.push("wrote");
+    if (orders.some((o) => alive(o) && o.status === "entregado" && o.updated_at >= from)) out.push("delivered");
+    if (recipes.some((r) => alive(r) && r.created_at >= from)) out.push("recipe");
+    return out;
+  }, [now]);
 }
 
 /** Mochito, el perrito que siempre va junto a tu personaje. Tocarlo abre su rincón: cariños, comida, juego, ropa y avisos. */

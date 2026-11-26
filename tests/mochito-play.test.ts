@@ -94,3 +94,40 @@ describe("Juegos de Mochito", () => {
     expect(hideRoundScore(true, 0, 8000, 5)).toBe(0.3);
   });
 });
+
+describe("Frases nuevas de Mochito", () => {
+  it("son 300, sin repetirse ni con las de antes", async () => {
+    const { NEW_LINES } = await import("@/lib/mochito-lines");
+    const { MOCHITO_LINES } = await import("@/lib/mochito");
+    const all = Object.values(NEW_LINES).flat();
+    expect(all).toHaveLength(300);
+    expect(new Set(all).size).toBe(300);
+    const old = new Set(Object.values(MOCHITO_LINES).flat());
+    expect(all.filter((x) => old.has(x))).toEqual([]);
+  });
+
+  it("dice lo del día especial, lo que hiciste hoy y lo de la semana", async () => {
+    const { BIRTHDAY, DID, HOLIDAYS, WEEKDAY, calendarLines, dateLines, didLines, extraLine } = await import("@/lib/mochito-lines");
+    const xmas = new Date(2026, 11, 25, 10).getTime();
+    expect(dateLines(xmas)).toBe(HOLIDAYS[0].lines);
+    expect(dateLines(xmas, "12-25")).toBe(BIRTHDAY);
+    expect(dateLines(new Date(2026, 5, 3).getTime())).toEqual([]);
+    expect(extraLine({ now: xmas }, 0)).toBe(HOLIDAYS[0].lines[0]);
+    expect(didLines([])).toBe(DID.nothing);
+    expect(didLines(["cooked"])).toEqual(DID.cooked);
+    expect(extraLine({ now: new Date(2026, 5, 3).getTime(), did: ["wrote"] }, 0.1)).toBe(DID.wrote[Math.floor((0.1 / 0.6) * DID.wrote.length)]);
+    const friday = new Date(2026, 10, 27, 10).getTime();
+    expect(calendarLines(friday)).toEqual(expect.arrayContaining(WEEKDAY[5]));
+    const lastDay = new Date(2026, 10, 30, 10).getTime();
+    expect(calendarLines(lastDay).some((l) => /mes/.test(l))).toBe(true);
+  });
+
+  it("al tocarlo siempre dice algo", async () => {
+    const { mochitoSays } = await import("@/lib/mochito");
+    for (let i = 0; i < 50; i++) {
+      const line = mochitoSays("contento", 10, i / 50, { now: new Date(2026, 10, 26, 10).getTime(), did: [] });
+      expect(typeof line).toBe("string");
+      expect(line.length).toBeGreaterThan(5);
+    }
+  });
+});

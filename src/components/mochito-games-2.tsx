@@ -11,6 +11,7 @@ import { mochitoDo } from "@/lib/mochito-actions";
 import {
   FETCH_THROWS, HIDE_ROUNDS, chargeAt, fetchPeriod, fetchPoints, fetchTarget, hideMs, hideRound, hideRoundScore, landingOf,
 } from "@/lib/mochito-play";
+import { FETCH_LINES, HIDE_LINES } from "@/lib/mochito-lines";
 import { sfx } from "@/lib/sfx";
 import { cn } from "@/lib/utils";
 
@@ -153,7 +154,7 @@ export function FetchGame({ onExit, play = DEFAULT_PLAY }: { onExit: () => void;
         {phase === "flying" && reduce && <ReducedLand onDone={landed} />}
       </div>
       {over ? (
-        <Result game="pelota" play={play} score={avg(points)} onAgain={again} onExit={onExit} detail={`Mochito trajo la pelota ${FETCH_THROWS} veces. Tu mejor tiro: ${Math.round(Math.max(...points) * 100)} puntos.`} />
+        <Result game="pelota" play={play} score={avg(points)} onAgain={again} onExit={onExit} detail={`Mochito trajo la pelota ${FETCH_THROWS} veces. Tu mejor tiro: ${Math.round(Math.max(...points) * 100)} puntos. Mochito dice: «${FETCH_LINES[Math.floor(avg(points) * 997) % FETCH_LINES.length]}»`} />
       ) : (
         <Button variant="outline" className="h-12 w-fit rounded-2xl px-6 text-base" onClick={onExit}>Salir</Button>
       )}
@@ -302,7 +303,7 @@ export function HideGame({ onExit, play = DEFAULT_PLAY }: { onExit: () => void; 
         })}
       </ul>
       {done ? (
-        <Result game="escondidas" play={play} score={avg(scores)} onAgain={again} onExit={onExit} detail={`Encontraste a Mochito ${scores.filter((s) => s > 0).length} de ${HIDE_ROUNDS} veces.`} />
+        <Result game="escondidas" play={play} score={avg(scores)} onAgain={again} onExit={onExit} detail={`Encontraste a Mochito ${scores.filter((s) => s > 0).length} de ${HIDE_ROUNDS} veces. Mochito dice: «${HIDE_LINES[Math.floor(avg(scores) * 997) % HIDE_LINES.length]}»`} />
       ) : (
         <Button variant="outline" className="h-12 w-fit rounded-2xl px-6 text-base" onClick={onExit}>Salir</Button>
       )}

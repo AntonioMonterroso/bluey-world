@@ -1,5 +1,7 @@
 // Mochito: el perrito que siempre acompaña a tu personaje. Lógica pura.
 
+import { extraLine, type SayContext } from "./mochito-lines";
+
 export const MOCHITO_APPEAL = 3; // en el local saluda a los clientes
 
 const MANANA = [
@@ -275,11 +277,19 @@ const MOOD_LINES: Record<MochitoMood, string[]> = {
   contento: ["Aquí estoy, contento a tu lado."],
 };
 
-/** Lo que dice al tocarlo: a veces cómo se siente, si no una frase según la hora. */
-export function mochitoSays(mood: MochitoMood, hour: number, pick: number) {
-  if (mood !== "contento" && mood !== "feliz" && pick < 0.5) {
+/**
+ * Lo que dice al tocarlo: a veces cómo se siente; si no, algo de la fecha, de lo que hiciste hoy,
+ * un chiste o ánimo (si hay `ctx`), o una frase según la hora.
+ */
+export function mochitoSays(mood: MochitoMood, hour: number, pick: number, ctx?: SayContext) {
+  if (mood !== "contento" && mood !== "feliz" && pick < (ctx ? 0.3 : 0.5)) {
     const lines = MOOD_LINES[mood];
-    return lines[Math.floor(pick * 2 * lines.length) % lines.length];
+    const p = pick / (ctx ? 0.3 : 0.5);
+    return lines[Math.min(lines.length - 1, Math.floor(p * lines.length))];
+  }
+  if (ctx) {
+    const p = (pick * 7919) % 1;
+    return pick < 0.65 ? extraLine(ctx, p) : mochitoLine(hour, p);
   }
   return mochitoLine(hour, pick);
 }

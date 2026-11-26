@@ -1,4 +1,5 @@
 import { dayKey, rng } from "./game/engine";
+import { WALK_EXTRA } from "./mochito-lines";
 
 // Lo que Mochito va ganando contigo: nivel, trucos, medallas y su paseo del día. Lógica pura.
 
@@ -104,7 +105,7 @@ export const earnedMedals = (m: MedalInput) => MEDALS.filter((x) => x.check(m));
 
 // ── Paseo del día ───────────────────────────────────────────────────
 
-export const WALK_LINES = [
+export const WALK_LINES_BASE = [
   "¡Olí una flor que olía a vainilla!",
   "Vi una ardilla. Ella me vio a mí. Empate.",
   "Saludé a un perrito nuevo. Se llama Panqué.",
@@ -114,6 +115,7 @@ export const WALK_LINES = [
   "Perseguí una hoja. Gané yo.",
   "Me senté bajo un árbol a pensar en galletas.",
 ];
+export const WALK_LINES = [...WALK_LINES_BASE, ...WALK_EXTRA];
 
 export type WalkFind =
   | { kind: "coins"; coins: number; text: string }
