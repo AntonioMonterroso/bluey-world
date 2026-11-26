@@ -76,10 +76,12 @@ describe("pegatinas en el local", () => {
 
 describe("Mochito", () => {
   it("dice una frase según la hora y suma encanto en el local", async () => {
-    const { mochitoLine, MOCHITO_APPEAL } = await import("@/lib/mochito");
+    const { mochitoLine, MOCHITO_APPEAL, MOCHITO_LINES } = await import("@/lib/mochito");
+    expect(Object.values(MOCHITO_LINES).flat()).toHaveLength(200);
     const { appealOf } = await import("@/lib/game/appeal");
     expect(mochitoLine(8, 0)).toMatch(/Buenos días/);
-    expect(mochitoLine(2, 0)).toMatch(/tarde/);
+    expect(mochitoLine(2, 0)).toMatch(/noche/);
+    expect(mochitoLine(14, 0)).toMatch(/Buenas tardes/);
     expect(typeof mochitoLine(15, 0.999)).toBe("string");
     const base = appealOf({ prices: {}, props: {}, shown: 0 });
     const withDog = appealOf({ prices: {}, props: {}, shown: 0, mochito: true });
