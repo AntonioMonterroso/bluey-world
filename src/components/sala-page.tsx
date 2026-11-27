@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bone, Brain, ChefHat, Music, ScanSearch, CircleDot, Grid3x3, Dog, EyeOff, Footprints, LayoutGrid, Wand2, Cake, Coins, ListOrdered, Search, ShoppingBasket, Timer, Trophy } from "lucide-react";
+import { Palette, Puzzle, Route, CloudRain, Bone, Brain, ChefHat, Music, ScanSearch, CircleDot, Grid3x3, Dog, EyeOff, Footprints, LayoutGrid, Wand2, Cake, Coins, ListOrdered, Search, ShoppingBasket, Timer, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CakeGame } from "@/components/cake-game";
 import { GuessGame, MemoryGame, Result, StepsGame, type Play } from "@/components/mini-games";
@@ -12,6 +12,7 @@ import { RunGame, SimonGame } from "@/components/mochito-games-3";
 import { CookGame, MemoGame } from "@/components/mochito-games-4";
 import { BoneGame, RhythmGame } from "@/components/mochito-games-5";
 import { BubbleGame, LoteriaGame } from "@/components/mochito-games-6";
+import { CookieRainGame, MazeGame, PaintGame, PuzzleGame } from "@/components/mochito-games-7";
 import { mochitoGameGoto, useClearMochitoGoto } from "@/lib/mochito-goto";
 import { OvenGame } from "@/components/oven-game";
 import { Stars } from "@/components/stars";
@@ -34,6 +35,10 @@ const LIST: { id: MiniGame; text: string; icon: typeof Brain }[] = [
   { id: "ritmo", text: "Toca al ritmo cuando las patitas lleguen a la línea.", icon: Music },
   { id: "burbujas", text: "Mochito brinca a reventar burbujas; las doradas valen más.", icon: CircleDot },
   { id: "loteria", text: "Mochito canta las cartas y tú llenas tu tabla.", icon: Grid3x3 },
+  { id: "rompecabezas", text: "Arma una foto de Mochito pieza por pieza.", icon: Puzzle },
+  { id: "lluvia", text: "Llueven galletas: atrápalas y esquiva las ramitas.", icon: CloudRain },
+  { id: "laberinto", text: "Guía a Mochito hasta su hueso. Cada día hay uno nuevo.", icon: Route },
+  { id: "pintar", text: "Colorea a Mochito y guarda tu dibujo en su álbum.", icon: Palette },
   { id: "pasos", text: "Pon en orden los pasos de tus recetas.", icon: ListOrdered },
   { id: "memoria", text: "Encuentra las parejas de ingredientes.", icon: Brain },
   { id: "adivina", text: "Pistas de ingredientes y a adivinar.", icon: Search },
@@ -89,6 +94,10 @@ function Inner() {
   if (game === "ritmo") return <RhythmGame key={k} play={play} onExit={exit} />;
   if (game === "burbujas") return <BubbleGame key={k} play={play} onExit={exit} />;
   if (game === "loteria") return <LoteriaGame key={k} play={play} onExit={exit} />;
+  if (game === "rompecabezas") return <PuzzleGame key={k} play={play} onExit={exit} />;
+  if (game === "lluvia") return <CookieRainGame key={k} play={play} onExit={exit} />;
+  if (game === "laberinto") return <MazeGame key={k} play={play} onExit={exit} />;
+  if (game === "pintar") return <PaintGame key={k} play={play} onExit={exit} />;
 
   return (
     <div className="flex max-w-5xl flex-col gap-6">

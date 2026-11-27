@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { Award, Check, Star, Target, BookHeart, Cake, Gift, Moon, Bath, Bell, Bone, Camera, Coins, Cookie, Dog, Droplets, Flower2, Footprints, Gamepad2, Hand, Heart, Home, Lock, Shirt, Sparkles, TreePine, Users, Wand2 } from "lucide-react";
+import { BookOpen, CloudRain, Leaf, Palette, Puzzle, Route, Stethoscope, Sun, Trophy, Wind, Award, Check, Star, Target, BookHeart, Cake, Gift, Moon, Bath, Bell, Bone, Camera, Coins, Cookie, Dog, Droplets, Flower2, Footprints, Gamepad2, Hand, Heart, Home, Lock, Shirt, Sparkles, TreePine, Users, Wand2 } from "lucide-react";
 import { DressedImage } from "@/components/dressed-image";
 import { MochitoFigure } from "@/components/mochito-figure";
 import { goTo, type MochitoGoto } from "@/lib/mochito-goto";
@@ -15,7 +15,7 @@ import { buyItem, useGame } from "@/lib/game/use-game";
 import { MOOD_LABEL, actionLine, mochitoSays, mochitoState, type MochitoNews } from "@/lib/mochito";
 import { LEVEL_UP, MEDAL_WON, THING_NEW, TRICK_DONE, WALK_GO } from "@/lib/mochito-lines";
 import { useMochitoDid } from "@/components/mochito";
-import { claimBirthday, claimMissions, missionsEventId, markGreeted, mochitoDo, mochitoWalk, openDailyGift, setMochitoThing } from "@/lib/mochito-actions";
+import { medalInputOf, claimBirthday, claimMissions, missionsEventId, markGreeted, mochitoDo, mochitoWalk, openDailyGift, setMochitoThing } from "@/lib/mochito-actions";
 import { BIRTHDAY_GIFT, MOCHITO_BDAY_LINES, festiveOf, giftFor, giftOpened, isMorning, isNight, logDayTitle, mochitoBirthday, morningLine, nextStreak, sleepyLine } from "@/lib/mochito-life";
 import { dayKey } from "@/lib/game/engine";
 import { MISSIONS_REWARD, missionProgress, missionsFor, type Mission, EMPTY_STATS, FRIEND_AT, MEDALS, SCRUB_STEPS, TEACH_TRIES, TRICKS, earnedMedals, friendsOf, mochitoLevel, trickReady, walkedToday, type Friend, type WalkFind } from "@/lib/mochito-play";
@@ -23,6 +23,8 @@ import { FriendsTab } from "@/components/mochito-friends";
 import { StickersTab } from "@/components/mochito-stickers";
 import { HouseArt, HouseDesigner } from "@/components/mochito-house";
 import { PhotoTab } from "@/components/mochito-photos";
+import { ShowScene, StoryScene, VetScene, WeatherLayer } from "@/components/mochito-care-2";
+import { AILMENTS, WEATHER, checkupDue, mochitoAilment, rainOutfit, showWeek, weatherOf, type Weather } from "@/lib/mochito-more";
 import { TRICK_MOVES } from "@/lib/mochito-moves";
 import { sfx } from "@/lib/sfx";
 import { cn } from "@/lib/utils";
@@ -54,7 +56,13 @@ const GAMES: { goto: MochitoGoto; name: string; icon: typeof Bone }[] = [
   { goto: "juego:ritmo", name: "Ritmo", icon: Footprints },
   { goto: "juego:burbujas", name: "Burbujas", icon: Droplets },
   { goto: "juego:loteria", name: "Lotería", icon: Star },
+  { goto: "juego:rompecabezas", name: "Rompecabezas", icon: Puzzle },
+  { goto: "juego:lluvia", name: "Lluvia", icon: Cookie },
+  { goto: "juego:laberinto", name: "Laberinto", icon: Route },
+  { goto: "juego:pintar", name: "Pintar", icon: Palette },
 ];
+
+const WEATHER_ICON: Record<Weather, typeof Sun> = { sol: Sun, lluvia: CloudRain, viento: Wind, hojas: Leaf };
 
 function Bar({ label, value, icon: Icon }: { label: string; value: number; icon: typeof Heart }) {
   return (
@@ -88,6 +96,7 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
   const [practice, setPractice] = useState<Record<string, number>>({});
   const [games, setGames] = useState(false);
   const [bath, setBath] = useState(false);
+  const [scene, setScene] = useState<"vet" | "story" | "show" | null>(null);
   const [walk, setWalk] = useState<{ phase: "going" | "done"; find?: Awaited<ReturnType<typeof mochitoWalk>> } | null>(null);
   const walkRef = useRef<{ arrived: boolean; find?: Awaited<ReturnType<typeof mochitoWalk>> }>({ arrived: false });
   const did = useMochitoDid(open ? now : 0);
@@ -96,7 +105,12 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
   const festive = festiveOf(now, !!bday?.isToday);
   const sleeping = isNight(now);
   const greet = isMorning(now) && profile.mochito_greet !== dayKey(now);
-  const said = line ?? (bday?.isToday ? MOCHITO_BDAY_LINES[now % MOCHITO_BDAY_LINES.length] : sleeping ? sleepyLine(0) : news[0]?.text ?? mochitoSays(state.mood, new Date(now).getHours(), (now % 997) / 997, ctx));
+  const ailment = mochitoAilment(now, care.vet);
+  const vetDue = !!ailment || checkupDue(care.vet, now);
+  const weather = weatherOf(now);
+  const WeatherIcon = WEATHER_ICON[weather];
+  const showDone = profile.mochito_show?.week === showWeek(now);
+  const said = line ?? (bday?.isToday ? MOCHITO_BDAY_LINES[now % MOCHITO_BDAY_LINES.length] : sleeping ? sleepyLine(0) : ailment ? AILMENTS[ailment].says : news[0]?.text ?? mochitoSays(state.mood, new Date(now).getHours(), (now % 997) / 997, ctx));
   const [gifting, setGifting] = useState<{ coins: number; streak: number; bonus: number } | null>(null);
   useEffect(() => {
     if (!open) return;
@@ -176,11 +190,11 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
   }
 
   const walked = walkedToday(stats, now) && !walk;
-  const medalsHave = new Set(earnedMedals({ stats, tricks, level: lvl.level, things: [profile.mochito_home?.bed, profile.mochito_home?.bowl, profile.mochito_home?.toy].filter(Boolean).length, friends: friendsOf(profile.mochito_friends).length }).map((m) => m.id));
+  const medalsHave = new Set(earnedMedals(medalInputOf(profile)).map((m) => m.id));
   const moving = move ? TRICK_MOVES[move.id] : null;
 
   return (
-    <Sheet open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setLine(null); setGames(false); setWalk(null); setBath(false); setGifting(null); setTab("cuidar"); } }}>
+    <Sheet open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setLine(null); setGames(false); setWalk(null); setBath(false); setScene(null); setGifting(null); setTab("cuidar"); } }}>
       <SheetContent side="bottom" className="mx-auto max-h-[92dvh] w-full max-w-xl overflow-y-auto rounded-t-[2rem] p-5 pb-8">
         <SheetHeader className="p-0">
           <SheetTitle className="font-heading text-2xl">Mochito · Nivel {lvl.level}</SheetTitle>
@@ -239,14 +253,27 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
 
         {tab === "cuidar" && (
           <div role="tabpanel" className="flex flex-col gap-4">
-            {bath ? (
+            {scene === "vet" ? (
+              <VetScene ailment={ailment} outfit={profile.mochito_outfit} onLine={setLine} onClose={() => setScene(null)} />
+            ) : scene === "story" ? (
+              <StoryScene now={now} read={profile.mochito_stories} toy={profile.mochito_home?.toy} outfit={profile.mochito_outfit} onLine={setLine} onClose={() => setScene(null)} />
+            ) : scene === "show" ? (
+              <ShowScene now={now} outfit={profile.mochito_outfit} tricks={tricks} clean={state.clean} love={state.love} metFriends={friendsOf(profile.mochito_friends).map((f) => f.id)} result={profile.mochito_show} onLine={setLine} onClose={() => setScene(null)} />
+            ) : bath ? (
               <BathScene reduce={!!reduce} muddy={!!care.muddy} outfit={profile.mochito_outfit} onStep={(t) => setLine(t)} onDone={() => void finishBath()} onClose={() => setBath(false)} />
             ) : walk ? (
-              <WalkScene reduce={!!reduce} find={walk.phase === "done" ? walk.find : undefined} outfit={profile.mochito_outfit} house={profile.mochito_house} onArrive={arrive} onClose={() => setWalk(null)} />
+              <WalkScene reduce={!!reduce} weather={weather} find={walk.phase === "done" ? walk.find : undefined} outfit={weather === "lluvia" ? rainOutfit(profile.mochito_outfit) : profile.mochito_outfit} house={profile.mochito_house} onArrive={arrive} onClose={() => setWalk(null)} />
             ) : (
               <>
+                {ailment && !sleeping && (
+                  <button type="button" onClick={() => { setScene("vet"); sfx("click"); setLine("¿Vamos con la doctora Pimienta? Me porto bien, prometido."); }} className="flex min-h-14 items-center gap-3 rounded-3xl border-2 border-destructive/40 bg-destructive/10 p-3 text-left active:scale-[0.97]">
+                    <Stethoscope className="size-6 shrink-0 text-destructive" aria-hidden />
+                    <span className="min-w-0 flex-1 text-sm"><span className="block font-semibold">Mochito no se siente bien: {AILMENTS[ailment].name.toLowerCase()}</span><span className="text-muted-foreground">Llévalo al veterinario y se cura enseguida.</span></span>
+                  </button>
+                )}
                 <MissionsCard missions={missionsFor(now)} stats={profile.mochito_stats} now={now} did={new Set([...(did ?? []), ...(did?.includes("earned") ? ["spent"] : []), ...(giftOpened(profile.mochito_gift, now) ? ["gift"] : [])])} claimed={g.events.some((e) => e.id === missionsEventId(now))} onClaim={() => void claimMissions().then((ok) => { if (ok) { sfx("cash"); setLine(`¡Cumplimos las misiones! Te ganaste ${MISSIONS_REWARD.coins} monedas y yo subí un poquito.`); } })} />
                 <GiftCard opened={giftOpened(profile.mochito_gift, now) && !gifting} gifting={gifting} streakNext={nextStreak(profile.mochito_gift, now)} streakNow={profile.mochito_gift?.streak ?? 0} onOpen={() => void gift()} reduce={!!reduce} />
+                <p className="flex items-center gap-2 rounded-3xl bg-secondary/60 px-4 py-2 text-xs font-semibold"><WeatherIcon className="size-4 shrink-0 text-primary" aria-hidden /> {WEATHER[weather].today}</p>
                 <div className="grid grid-cols-2 gap-3 rounded-3xl bg-secondary/60 p-3 sm:grid-cols-4">
                   <Bar label="Barriga" value={state.belly} icon={Bone} />
                   <Bar label="Cariño" value={state.love} icon={Heart} />
@@ -262,6 +289,13 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
                   </button>
                   <button type="button" className={cn(action, games && "border-primary")} aria-expanded={games} onClick={() => setGames((v) => !v)}><Gamepad2 className="size-6 text-primary" aria-hidden /> Jugar</button>
                   <Link href="/vestuario" className={action} onClick={() => { goTo("vestir"); onOpenChange(false); }}><Shirt className="size-6 text-primary" aria-hidden /> Vestir</Link>
+                  <button type="button" className={cn(action, ailment && "border-destructive/50")} onClick={() => { setScene("vet"); sfx("click"); setLine(ailment ? "Sí, vamos. Me siento malito." : "¿Mi chequeo? Está bien, pero me das premio después."); }}>
+                    <Stethoscope className="size-6 text-primary" aria-hidden /> {ailment ? "Al veterinario" : vetDue ? "Su chequeo" : "Veterinario"}
+                  </button>
+                  <button type="button" className={cn(action, sleeping && "border-primary")} onClick={() => { setScene("story"); sfx("click"); }}><BookOpen className="size-6 text-primary" aria-hidden /> Cuento</button>
+                  <button type="button" className={action} onClick={() => { setScene("show"); sfx("click"); setLine(showDone ? "Ya concursamos esta semana. ¿Viste mi listón?" : "¿Un concurso? ¡Quiero el listón azul!"); }}>
+                    <Trophy className="size-6 text-primary" aria-hidden /> {showDone ? "Su listón" : "Concurso"}
+                  </button>
                   <button type="button" className={action} onClick={talk}><Sparkles className="size-6 text-primary" aria-hidden /> Otra frase</button>
                 </div>
                 {games && (
@@ -417,13 +451,14 @@ function ThingsTab({ g, home, onLine }: { g: ReturnType<typeof useGame>; home?: 
 }
 
 /** El paseo: Mochito cruza el parque y al llegar cuenta lo que encontró. */
-function WalkScene({ reduce, find, outfit, house, onArrive, onClose }: { reduce: boolean; find?: WalkFind; outfit?: Record<string, string>; house?: { style?: string; roof?: string; wall?: string; flowers?: string; sign?: string }; onArrive: () => void; onClose: () => void }) {
+function WalkScene({ reduce, weather, find, outfit, house, onArrive, onClose }: { reduce: boolean; weather: Weather; find?: WalkFind; outfit?: Record<string, string>; house?: { style?: string; roof?: string; wall?: string; flowers?: string; sign?: string }; onArrive: () => void; onClose: () => void }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="relative h-40 overflow-hidden rounded-3xl bg-gradient-to-b from-sky-100 to-sky-50 dark:from-sky-950 dark:to-sky-900">
         <div className="absolute inset-x-0 bottom-0 h-10 bg-emerald-200 dark:bg-emerald-900" />
         <div className="absolute bottom-7 left-[3%] h-24 w-28"><HouseArt house={house} /></div>
-        <TreePine className="absolute bottom-8 right-[8%] size-16 text-emerald-700" aria-hidden />
+        <TreePine className={cn("absolute bottom-8 right-[8%] size-16", weather === "hojas" ? "text-orange-600" : "text-emerald-700")} aria-hidden />
+        <WeatherLayer weather={weather} />
         <Flower2 className="absolute bottom-3 left-[40%] size-6 text-pink-500" aria-hidden />
         <Flower2 className="absolute bottom-4 left-[62%] size-5 text-amber-500" aria-hidden />
         <motion.div
@@ -444,7 +479,7 @@ function WalkScene({ reduce, find, outfit, house, onArrive, onClose }: { reduce:
           <button type="button" onClick={onClose} className="min-h-11 rounded-2xl bg-primary px-5 text-sm font-semibold text-primary-foreground active:scale-[0.97]">Volver a casa</button>
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground" aria-live="polite">Mochito va de paseo por el parque…</p>
+        <p className="text-sm text-muted-foreground" aria-live="polite">{weather === "lluvia" ? "Mochito sale con sus botitas y su paraguas…" : "Mochito va de paseo por el parque…"}</p>
       )}
     </div>
   );

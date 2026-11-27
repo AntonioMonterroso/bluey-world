@@ -77,9 +77,10 @@ export function appendLog(log: LogDay[] | undefined, now: number, line: string):
 
 export type LogEvent =
   | { kind: "pet" } | { kind: "treat" } | { kind: "bath" } | { kind: "photo" } | { kind: "gift"; coins: number }
-  | { kind: "walk"; friend?: string; newFriend?: boolean } | { kind: "game"; game?: string }
+  | { kind: "walk"; friend?: string; newFriend?: boolean; weather?: string } | { kind: "game"; game?: string }
   | { kind: "trick"; name: string } | { kind: "medal"; name: string } | { kind: "level"; level: number }
-  | { kind: "thing"; name: string } | { kind: "birthday"; age: number } | { kind: "missions" } | { kind: "cooked"; recipe: string } | { kind: "sticker"; name: string };
+  | { kind: "thing"; name: string } | { kind: "birthday"; age: number } | { kind: "missions" } | { kind: "cooked"; recipe: string } | { kind: "sticker"; name: string }
+  | { kind: "vet"; ailment?: string } | { kind: "story"; title: string } | { kind: "show"; place: string; ribbon: string } | { kind: "painting" };
 
 /** Cómo lo cuenta Mochito en su diario (en primera persona). */
 export function logLine(ev: LogEvent): string {
@@ -89,7 +90,8 @@ export function logLine(ev: LogEvent): string {
     case "bath": return "Me bañaste con burbujas y quedé limpiecito.";
     case "photo": return "Nos tomamos fotos. Salí guapísimo.";
     case "gift": return `Abrí mi regalo del día: ${ev.coins} monedas.`;
-    case "walk": return ev.friend ? (ev.newFriend ? `Salimos de paseo y me hice amigo de ${ev.friend}.` : `Salimos de paseo y vi a ${ev.friend}.`) : "Salimos de paseo al parque.";
+    case "walk": if (ev.weather) return `${ev.weather}${ev.friend ? (ev.newFriend ? ` Y me hice amigo de ${ev.friend}.` : ` Vi a ${ev.friend}.`) : ""}`;
+      return ev.friend ? (ev.newFriend ? `Salimos de paseo y me hice amigo de ${ev.friend}.` : `Salimos de paseo y vi a ${ev.friend}.`) : "Salimos de paseo al parque.";
     case "game": return ev.game ? `Jugamos «${ev.game}».` : "Jugamos un rato juntos.";
     case "trick": return `Aprendí un truco nuevo: ${ev.name.toLowerCase()}.`;
     case "medal": return `Gané la medalla «${ev.name}».`;
@@ -98,6 +100,10 @@ export function logLine(ev: LogEvent): string {
     case "sticker": return `Gané una pegatina para mi álbum: ${ev.name}.`;
     case "cooked": return `Te acompañé a cocinar ${ev.recipe}. Olía delicioso.`;
     case "missions": return "¡Cumplimos las tres misiones del día!";
+    case "vet": return ev.ailment ? `Fui al veterinario porque ${ev.ailment.toLowerCase()}. La doctora Pimienta me curó.` : "Fui a mi chequeo con la doctora Pimienta. ¡Estoy sanísimo!";
+    case "story": return `Me leíste «${ev.title}» y me dormí abrazando mi juguete.`;
+    case "show": return `Fui al concurso de perritos y gané el ${ev.ribbon.toLowerCase()} (${ev.place.toLowerCase()}).`;
+    case "painting": return "Me pintaste de colores. ¡Quedé en mi álbum!";
     case "birthday": return `¡Cumplí ${ev.age} ${ev.age === 1 ? "año" : "años"}! Hubo pastel y regalo.`;
   }
 }

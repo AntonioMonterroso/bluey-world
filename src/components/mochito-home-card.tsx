@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Bone, Check, Droplets, Gamepad2, Gift, Heart, Target } from "lucide-react";
+import { Bone, Check, Droplets, Gamepad2, Gift, Heart, Stethoscope, Target } from "lucide-react";
 import { Mochito, useMochitoDid, useMochitoOn } from "@/components/mochito";
 import { useProfile } from "@/lib/db/profile";
 import { dayKey, rng } from "@/lib/game/engine";
 import { useGame } from "@/lib/game/use-game";
 import { MOOD_LABEL, mochitoSays, mochitoState } from "@/lib/mochito";
 import { missionsEventId } from "@/lib/mochito-actions";
-import { giftOpened } from "@/lib/mochito-life";
+import { giftOpened, isNight } from "@/lib/mochito-life";
+import { AILMENTS, mochitoAilment } from "@/lib/mochito-more";
 import { EMPTY_STATS, missionProgress, missionsFor, mochitoLevel } from "@/lib/mochito-play";
 import { useIsClient } from "@/lib/use-is-client";
 import { cn } from "@/lib/utils";
@@ -41,6 +42,7 @@ function Inner() {
   const left = missions.filter((x) => !x.done);
   const claimed = g.events.some((e) => e.id === missionsEventId(now));
   const gift = !giftOpened(profile.mochito_gift, now);
+  const ailment = isNight(now) ? null : mochitoAilment(now, care.vet);
   const phrase = mochitoSays("contento", new Date(now).getHours(), rng(`frase:${dayKey(now)}`)(), { now, birthday: profile.birthday, did });
 
   return (
@@ -51,7 +53,7 @@ function Inner() {
           <h2 id="mochito-inicio" className="text-xl">Mochito · Nivel {lvl.level}</h2>
           <p className="text-sm text-muted-foreground">Está <span className="font-semibold text-foreground">{MOOD_LABEL[state.mood].toLowerCase()}</span></p>
         </div>
-        <p className="rounded-2xl rounded-tl-md bg-secondary px-3 py-2 text-sm leading-snug text-pretty">«{phrase}»</p>
+        <p className="rounded-2xl rounded-tl-md bg-secondary px-3 py-2 text-sm leading-snug text-pretty">«{ailment ? AILMENTS[ailment].says : phrase}»</p>
         <div className="flex gap-3">
           <Mini value={state.belly} icon={Bone} label="Barriga" />
           <Mini value={state.love} icon={Heart} label="Cariño" />
@@ -63,6 +65,7 @@ function Inner() {
             {left.length ? <Target className="size-3.5 text-primary" aria-hidden /> : <Check className="size-3.5" aria-hidden />}
             {left.length ? `Falta: ${left[0].m.text.toLowerCase()}${left.length > 1 ? ` (+${left.length - 1})` : ""}` : claimed ? "Misiones cumplidas" : "¡Misiones listas! Cobra tu premio"}
           </span>
+          {ailment && <span className="flex items-center gap-1.5 rounded-full bg-destructive/15 px-3 py-1.5 text-foreground"><Stethoscope className="size-3.5 text-destructive" aria-hidden /> Está malito: llévalo al veterinario</span>}
           {gift && <span className="flex items-center gap-1.5 rounded-full bg-[var(--gold)] px-3 py-1.5 text-foreground"><Gift className="size-3.5" aria-hidden /> Tiene un regalo para ti</span>}
         </div>
         <p className="text-xs text-muted-foreground">Tócalo para abrir su rincón.</p>

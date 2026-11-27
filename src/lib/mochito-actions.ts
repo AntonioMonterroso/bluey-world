@@ -6,12 +6,23 @@ import { upsertRow } from "@/lib/db/repo";
 import { dayKey } from "@/lib/game/engine";
 import { pushToast, writeAwards } from "@/lib/game/use-game";
 import { STICKER_CHANCE, pickSticker, stickerCount, type Sticker } from "@/lib/mochito-stickers";
+import { RIBBONS, WEATHER, weatherOf, type Ribbon, type Story, type Weather } from "@/lib/mochito-more";
 import { MOCHITO_WEAR, WEAR_ITEMS, mochitoWearUnlocked } from "@/lib/game/wardrobe";
 import { PET_ITEMS } from "@/lib/game/shop";
 import { BIRTHDAY_GIFT, appendLog, giftFor, giftOpened, logLine, mochitoBirthday, nextStreak, type LogEvent } from "@/lib/mochito-life";
-import { MISSIONS_REWARD, EMPTY_STATS, FRIENDS, FRIEND_AT, TRICKS, applyCare, earnedMedals, friendsOf, medalEventId, mochitoLevel, walkFind, walkMeet, type CareKind, type Friend, type WalkFind } from "@/lib/mochito-play";
+import { type MedalInput, MISSIONS_REWARD, EMPTY_STATS, FRIENDS, FRIEND_AT, TRICKS, applyCare, earnedMedals, friendsOf, medalEventId, mochitoLevel, walkFind, walkMeet, type CareKind, type Friend, type WalkFind } from "@/lib/mochito-play";
 
 const thingsOf = (home: { bed?: string; bowl?: string; toy?: string } | undefined) => [home?.bed, home?.bowl, home?.toy].filter(Boolean).length;
+
+/** Lo que cuentan las medallas, sacado del perfil. */
+export function medalInputOf(p: Partial<typeof DEFAULT_PROFILE>): MedalInput {
+  const stats = { ...EMPTY_STATS, ...p.mochito_stats };
+  return {
+    stats, tricks: p.mochito_tricks ?? [], level: mochitoLevel(stats.xp).level, things: thingsOf(p.mochito_home),
+    friends: friendsOf(p.mochito_friends).length, stickers: stickerCount(p.mochito_stickers),
+    weathers: new Set(p.mochito_weathers ?? []).size, storiesRead: new Set(p.mochito_stories ?? []).size, blue: p.mochito_ribbons?.azul ?? 0,
+  };
+}
 
 /** Anota recuerdos en el diario de Mochito. */
 export async function mochitoLog(...events: LogEvent[]) {
@@ -26,8 +37,7 @@ export async function mochitoLog(...events: LogEvent[]) {
 /** Paga las medallas nuevas (los ids son fijos, así que nunca se cobran dos veces). */
 async function payMedals() {
   const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
-  const stats = { ...EMPTY_STATS, ...p.mochito_stats };
-  const medals = earnedMedals({ stats, tricks: p.mochito_tricks ?? [], level: mochitoLevel(stats.xp).level, things: thingsOf(p.mochito_home), friends: friendsOf(p.mochito_friends).length, stickers: stickerCount(p.mochito_stickers) });
+  const medals = earnedMedals(medalInputOf(p));
   if (!medals.length) return [];
   const existing = await db.game_events.toArray();
   const had = new Set(existing.filter((e) => !e.deleted_at).map((e) => e.id));
@@ -51,9 +61,9 @@ export async function maybeSticker(kind: string, force = false): Promise<Sticker
 /** Le da la ropa exclusiva que ya ganó (por nivel o medallas). Devuelve los nombres de lo nuevo. */
 export async function unlockMochitoWear() {
   const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
-  const stats = { ...EMPTY_STATS, ...p.mochito_stats };
-  const level = mochitoLevel(stats.xp).level;
-  const medals = new Set(earnedMedals({ stats, tricks: p.mochito_tricks ?? [], level, things: thingsOf(p.mochito_home), friends: friendsOf(p.mochito_friends).length, stickers: stickerCount(p.mochito_stickers) }).map((m) => m.id));
+  const input = medalInputOf(p);
+  const level = input.level;
+  const medals = new Set(earnedMedals(input).map((m) => m.id));
   const owned = new Set((await db.owned_items.toArray()).filter((o) => !o.deleted_at).map((o) => o.id));
   const fresh = MOCHITO_WEAR.filter((w) => !owned.has(w.id) && mochitoWearUnlocked(w, level, medals));
   const now = Date.now();
@@ -63,7 +73,7 @@ export async function unlockMochitoWear() {
 }
 
 /** Lo que haces con Mochito: suma a su nivel, a sus barras y revisa si ganó una medalla. Devuelve el nivel antes y después. */
-export async function mochitoDo(kind: CareKind, extra: { trick?: string; friend?: string; game?: string } = {}) {
+export async function mochitoDo(kind: CareKind, extra: { trick?: string; friend?: string; game?: string; weather?: string; ailment?: string; story?: Story; show?: { ribbon: Ribbon; total: number; week: string } } = {}) {
   const now = Date.now();
   const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
   const care = p.mochito_care ?? {};
@@ -75,13 +85,23 @@ export async function mochitoDo(kind: CareKind, extra: { trick?: string; friend?
   if (kind === "game") patch.mochito_care = { ...care, played: now };
   if (kind === "walk") patch.mochito_care = { ...care, played: now, muddy: true };
   if (kind === "bath") patch.mochito_care = { ...care, washed: now, muddy: false };
+  if (kind === "vet") patch.mochito_care = { ...care, vet: now };
+  if (kind === "walk" && extra.weather) patch.mochito_weathers = [...new Set([...(p.mochito_weathers ?? []), extra.weather])];
+  if (kind === "story" && extra.story) patch.mochito_stories = [...new Set([...(p.mochito_stories ?? []), extra.story.id])];
+  if (kind === "show" && extra.show) {
+    patch.mochito_show = { week: extra.show.week, ribbon: extra.show.ribbon, total: extra.show.total };
+    patch.mochito_ribbons = { ...p.mochito_ribbons, [extra.show.ribbon]: (p.mochito_ribbons?.[extra.show.ribbon] ?? 0) + 1 };
+  }
   if (kind === "walk" && extra.friend) patch.mochito_friends = { ...p.mochito_friends, [extra.friend]: (p.mochito_friends?.[extra.friend] ?? 0) + 1 };
   if (kind === "trick" && extra.trick) patch.mochito_tricks = [...new Set([...(p.mochito_tricks ?? []), extra.trick])];
   const friend = extra.friend ? FRIENDS.find((f) => f.id === extra.friend) : undefined;
   const ev: LogEvent | null =
     kind === "pet" ? { kind: "pet" } : kind === "treat" ? { kind: "treat" } : kind === "bath" ? { kind: "bath" } : kind === "photo" ? { kind: "photo" }
     : kind === "game" ? { kind: "game", game: extra.game }
-    : kind === "walk" ? { kind: "walk", friend: friend?.name, newFriend: !!friend && (p.mochito_friends?.[friend.id] ?? 0) + 1 === FRIEND_AT }
+    : kind === "walk" ? { kind: "walk", friend: friend?.name, newFriend: !!friend && (p.mochito_friends?.[friend.id] ?? 0) + 1 === FRIEND_AT, weather: extra.weather ? WEATHER[extra.weather as Weather]?.walk : undefined }
+    : kind === "vet" ? { kind: "vet", ailment: extra.ailment }
+    : kind === "story" && extra.story ? { kind: "story", title: extra.story.title }
+    : kind === "show" && extra.show ? { kind: "show", ribbon: RIBBONS[extra.show.ribbon].name, place: RIBBONS[extra.show.ribbon].place }
     : kind === "trick" && extra.trick ? { kind: "trick", name: TRICKS.find((t) => t.id === extra.trick)?.name ?? extra.trick } : null;
   if (ev) patch.mochito_log = appendLog(p.mochito_log, now, logLine(ev));
   await updateProfile(patch);
@@ -106,7 +126,7 @@ export async function mochitoWalk(): Promise<WalkFind & { medals: string[]; leve
   }
   if (find.kind === "wear") await upsertRow<OwnedItem>("owned_items", { id: find.itemId, bought_at: now });
   const friend = walkMeet(now);
-  const r = await mochitoDo("walk", { friend: friend?.id });
+  const r = await mochitoDo("walk", { friend: friend?.id, weather: weatherOf(now) });
   const p = await db.profile.get(PROFILE_ID);
   const met = friend ? (p?.mochito_friends?.[friend.id] ?? 0) : 0;
   return { ...find, medals: r.medals, levelUp: r.after > r.before ? r.after : 0, friend, met };
@@ -176,4 +196,26 @@ export async function claimMissions() {
   await payMedals();
   await unlockMochitoWear();
   return true;
+}
+
+/** Se curó (o pasó su chequeo) con la doctora Pimienta. Siempre gana una pegatina. */
+export const mochitoVet = (ailment?: string) => mochitoDo("vet", { ailment });
+
+/** Le leíste un cuento y se durmió. */
+export const readStory = (story: Story) => mochitoDo("story", { story });
+
+/** El concurso de la semana: una vez por semana da su listón y sus monedas. */
+export async function enterShow(week: string, ribbon: Ribbon, total: number) {
+  const id = `mochito-concurso:${week}`;
+  if (await db.game_events.get(id)) return null;
+  const now = Date.now();
+  await writeAwards([{ id, kind: "mochito", label: `Concurso de perritos: ${RIBBONS[ribbon].name}`, xp: 0, coins: RIBBONS[ribbon].coins, at: now }], await db.game_events.toArray());
+  return mochitoDo("show", { show: { week, ribbon, total } });
+}
+
+/** Guarda un dibujo pintado en su álbum de fotos. */
+export async function savePainting(data: string) {
+  const now = Date.now();
+  await db.mochito_photos.put({ id: `pintura-${now}`, at: now, data, scene: "pintura" });
+  await mochitoLog({ kind: "painting" });
 }

@@ -11,6 +11,9 @@ export interface MochitoStats {
   walks: number;
   baths?: number;
   photos?: number;
+  vets?: number;
+  stories?: number;
+  shows?: number;
   days: string[]; // días en que lo cuidaste
   walk_day?: string; // último día que salió de paseo
   xp_day?: string;
@@ -19,11 +22,11 @@ export interface MochitoStats {
   count?: Partial<Record<CareKind, number>>; // lo que hicieron hoy (para las misiones)
 }
 
-export type CareKind = "pet" | "treat" | "game" | "walk" | "trick" | "bath" | "photo";
+export type CareKind = "pet" | "treat" | "game" | "walk" | "trick" | "bath" | "photo" | "vet" | "story" | "show";
 
 export const EMPTY_STATS: MochitoStats = { xp: 0, pets: 0, treats: 0, games: 0, walks: 0, days: [] };
 
-export const CARE_XP: Record<CareKind, number> = { pet: 2, treat: 4, game: 6, walk: 8, trick: 10, bath: 6, photo: 2 };
+export const CARE_XP: Record<CareKind, number> = { pet: 2, treat: 4, game: 6, walk: 8, trick: 10, bath: 6, photo: 2, vet: 6, story: 4, show: 10 };
 /** Tope de experiencia por día con cariños, galletas y juegos (el paseo y los trucos no cuentan). */
 export const DAILY_XP = 40;
 export const PET_XP_EVERY_MS = 5 * 60_000;
@@ -42,10 +45,13 @@ export function applyCare(stats: MochitoStats | undefined, kind: CareKind, now: 
   if (kind === "walk") { s.walks++; s.walk_day = day; }
   if (kind === "bath") s.baths = (s.baths ?? 0) + 1;
   if (kind === "photo") s.photos = (s.photos ?? 0) + 1;
+  if (kind === "vet") s.vets = (s.vets ?? 0) + 1;
+  if (kind === "story") s.stories = (s.stories ?? 0) + 1;
+  if (kind === "show") s.shows = (s.shows ?? 0) + 1;
 
   let gain = CARE_XP[kind];
   if (kind === "pet" && lastPet && now - lastPet < PET_XP_EVERY_MS) gain = 0;
-  if (kind === "pet" || kind === "treat" || kind === "game" || kind === "bath" || kind === "photo") {
+  if (kind === "pet" || kind === "treat" || kind === "game" || kind === "bath" || kind === "photo" || kind === "vet" || kind === "story") {
     const today = s.xp_day === day ? (s.xp_today ?? 0) : 0;
     gain = Math.max(0, Math.min(gain, DAILY_XP - today));
     s.xp_day = day;
@@ -89,7 +95,7 @@ export const trickReady = (t: Trick, level: number) => level >= t.level;
 
 // ── Medallas ────────────────────────────────────────────────────────
 
-export interface MedalInput { stats: MochitoStats; tricks: string[]; level: number; things: number; friends?: number; stickers?: number }
+export interface MedalInput { stats: MochitoStats; tricks: string[]; level: number; things: number; friends?: number; stickers?: number; weathers?: number; storiesRead?: number; blue?: number }
 export interface Medal { id: string; name: string; desc: string; coins: number; check: (m: MedalInput) => boolean }
 
 export const MEDALS: Medal[] = [
@@ -113,6 +119,12 @@ export const MEDALS: Medal[] = [
   { id: "amigo-1", name: "Primer amigo", desc: "Haz un amigo en el paseo.", coins: 10, check: (m) => (m.friends ?? 0) >= 1 },
   { id: "pegatinas-10", name: "Coleccionista", desc: "Junta 10 pegatinas distintas.", coins: 10, check: (m) => (m.stickers ?? 0) >= 10 },
   { id: "pegatinas-todas", name: "Álbum completo", desc: "Junta las 32 pegatinas.", coins: 40, check: (m) => (m.stickers ?? 0) >= 32 },
+  { id: "vet-1", name: "Paciente valiente", desc: "Llévalo al veterinario.", coins: 5, check: (m) => (m.stats.vets ?? 0) >= 1 },
+  { id: "vet-5", name: "Siempre sanito", desc: "Llévalo 5 veces al veterinario.", coins: 15, check: (m) => (m.stats.vets ?? 0) >= 5 },
+  { id: "cuentos-todos", name: "Cuentacuentos", desc: "Léele los 6 cuentos para dormir.", coins: 15, check: (m) => (m.storiesRead ?? 0) >= 6 },
+  { id: "cuentos-10", name: "Buenas noches", desc: "Léele 10 cuentos.", coins: 10, check: (m) => (m.stats.stories ?? 0) >= 10 },
+  { id: "liston-azul", name: "Campeón del parque", desc: "Gana el listón azul en el concurso.", coins: 20, check: (m) => (m.blue ?? 0) >= 1 },
+  { id: "clima-todos", name: "Llueva o truene", desc: "Pasea con sol, lluvia, viento y hojas.", coins: 15, check: (m) => (m.weathers ?? 0) >= 4 },
   { id: "amigos-todos", name: "Amigo de todos", desc: "Hazte amigo de todos los perritos del parque.", coins: 30, check: (m) => (m.friends ?? 0) >= FRIENDS.length },
 ];
 

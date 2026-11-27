@@ -695,3 +695,20 @@ ART["wear:m-rescate"] = {
     </g>
   ),
 };
+ART["wear:x-paraguas"] = {
+  layer: "front",
+  render: ({ hr, hy, cx, top, u }) => {
+    const px = (hr + cx) / 2 + 0.1 * u;
+    const py = top - 0.42 * u;
+    const r = 0.78 * u;
+    return (
+      <g stroke={LINE} strokeWidth={0.3}>
+        <path d={`M${hr} ${hy + 0.06 * u} q0 ${0.12 * u} ${-0.1 * u} ${0.12 * u}`} stroke="#5a3b2e" strokeWidth={0.05 * u} fill="none" strokeLinecap="round" />
+        <path d={`M${hr} ${hy + 0.06 * u} L${px} ${py}`} stroke="#5a3b2e" strokeWidth={0.04 * u} strokeLinecap="round" />
+        <path d={`M${px - r} ${py} A${r} ${r * 0.72} 0 0 1 ${px + r} ${py} Q${px + r * 0.66} ${py - 0.08 * u} ${px + r * 0.33} ${py} Q${px} ${py - 0.08 * u} ${px - r * 0.33} ${py} Q${px - r * 0.66} ${py - 0.08 * u} ${px - r} ${py} Z`} fill="#f5c518" />
+        <path d={`M${px} ${py - r * 0.72} Q${px - r * 0.2} ${py - r * 0.3} ${px - r * 0.33} ${py} M${px} ${py - r * 0.72} Q${px + r * 0.2} ${py - r * 0.3} ${px + r * 0.33} ${py}`} stroke="#e0a800" fill="none" />
+        <circle cx={px} cy={py - r * 0.74} r={0.035 * u} fill="#5a3b2e" stroke="none" />
+      </g>
+    );
+  },
+};

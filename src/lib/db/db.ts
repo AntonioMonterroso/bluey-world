@@ -29,12 +29,16 @@ export interface Profile extends SyncRow {
   journal_char?: string; // quién la escucha en el diario (si no, su personaje)
   mochito?: boolean; // false = Mochito escondido (por defecto siempre acompaña)
   mochito_outfit?: Record<string, string>; // ropa de Mochito: ranura → artículo
-  mochito_care?: { fed?: number; petted?: number; played?: number; washed?: number; muddy?: boolean }; // última vez que comió, lo acariciaste, jugó y se bañó; lodo del paseo
+  mochito_care?: { fed?: number; petted?: number; played?: number; washed?: number; muddy?: boolean; vet?: number }; // última vez que comió, lo acariciaste, jugó y se bañó; lodo del paseo
   mochito_friends?: Record<string, number>; // perritos del parque: cuántas veces se encontraron
   mochito_log?: { d: string; e: string[] }[]; // su diario: lo que hicieron juntos cada día
   mochito_gift?: { day?: string; streak?: number }; // regalo del día: último día abierto y racha
   mochito_greet?: string; // último día que te dio los buenos días
   mochito_stickers?: Record<string, number>; // pegatinas: id → cuántas tiene
+  mochito_stories?: string[]; // cuentos para dormir que ya le leíste
+  mochito_show?: { week: string; ribbon: string; total: number }; // concurso de perritos de esta semana
+  mochito_ribbons?: Record<string, number>; // listones ganados: color → cuántos
+  mochito_weathers?: string[]; // climas en que ha paseado
   mochito_house?: { style?: string; roof?: string; wall?: string; flowers?: string; sign?: string }; // su casita en el jardín
   mochito_stats?: import("../mochito-play").MochitoStats; // nivel, cuentas y días que lo cuidaste
   mochito_tricks?: string[]; // trucos que ya aprendió
