@@ -63,6 +63,6 @@ export function pickSticker(rnd: () => number, have: Record<string, number> | un
 }
 
 /** Qué tan seguido sale una pegatina según lo que hiciste. */
-export const STICKER_CHANCE: Record<string, number> = { walk: 1, missions: 1, game: 0.4, bath: 0.3, trick: 0.5, vet: 1, show: 1, story: 0.25, groom: 0.5, trip: 1, party: 1, garden: 0.15, street: 1, school: 0.5, bake: 0.3, buddy: 0.2, letter: 0.4, camp: 1, stand: 0.6, teeth: 0.2, tree: 0.5, fair: 1, fbday: 1, daycare: 0.6, theater: 0.4, clean: 0.5, repair: 0.5 };
+export const STICKER_CHANCE: Record<string, number> = { walk: 1, missions: 1, game: 0.4, bath: 0.3, trick: 0.5, vet: 1, show: 1, story: 0.25, groom: 0.5, trip: 1, party: 1, garden: 0.15, street: 1, school: 0.5, bake: 0.3, buddy: 0.2, letter: 0.4, camp: 1, stand: 0.6, teeth: 0.2, tree: 0.5, fair: 1, fbday: 1, daycare: 0.6, theater: 0.4, clean: 0.5, repair: 0.5, kite: 0.5, beach: 1, sleepover: 1, chores: 0.15 };
 
 export const stickerCount = (have: Record<string, number> | undefined) => STICKERS.filter((st) => (have?.[st.id] ?? 0) > 0).length;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Shovel, RectangleHorizontal as Domino, Crown, Columns4, Calculator, Dices, Scissors, Grid3x3 as GridIcon, SpellCheck, Flag, Blocks, Hash, Layers, Cylinder, Target, TrainFront, Drum, Fish, Disc3, SearchCheck, Type, Palette, Puzzle, Route, CloudRain, Bone, Brain, ChefHat, Music, ScanSearch, CircleDot, Grid3x3, Dog, EyeOff, Footprints, LayoutGrid, Wand2, Cake, Coins, ListOrdered, Search, ShoppingBasket, Timer, Trophy } from "lucide-react";
+import { Grid2x2, SquareDot, Ship, Worm, Shovel, RectangleHorizontal as Domino, Crown, Columns4, Calculator, Dices, Scissors, Grid3x3 as GridIcon, SpellCheck, Flag, Blocks, Hash, Layers, Cylinder, Target, TrainFront, Drum, Fish, Disc3, SearchCheck, Type, Palette, Puzzle, Route, CloudRain, Bone, Brain, ChefHat, Music, ScanSearch, CircleDot, Grid3x3, Dog, EyeOff, Footprints, LayoutGrid, Wand2, Cake, Coins, ListOrdered, Search, ShoppingBasket, Timer, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CakeGame } from "@/components/cake-game";
 import { GuessGame, MemoryGame, Result, StepsGame, type Play } from "@/components/mini-games";
@@ -14,6 +14,7 @@ import { BoneGame, RhythmGame } from "@/components/mochito-games-5";
 import { BubbleGame, LoteriaGame } from "@/components/mochito-games-6";
 import { CookieRainGame, MazeGame, PaintGame, PuzzleGame } from "@/components/mochito-games-7";
 import { DiffGame, FishGame, FrisbeeGame, SoupGame } from "@/components/mochito-games-8";
+import { BoxesGame, ShipsGame, SudokuGame, WormGame } from "@/components/mochito-games-13";
 import { BonesGame, CheckersGame, DominoGame, MolesGame } from "@/components/mochito-games-12";
 import { ConnectFourGame, LaddersGame, RpsGame, SumsGame } from "@/components/mochito-games-11";
 import { GolfGame, HangmanGame, TicTacGame, TowerGame } from "@/components/mochito-games-10";
@@ -66,6 +67,10 @@ const LIST: { id: MiniGame; text: string; icon: typeof Brain }[] = [
   { id: "domino", text: "Dominó contra Mochito: el primero sin fichas gana.", icon: Domino },
   { id: "damas", text: "Huesos contra pelotas: avanza en diagonal y come saltando.", icon: Crown },
   { id: "huesos", text: "Desliza y junta huesos iguales hasta el hueso dorado.", icon: Bone },
+  { id: "sudoku", text: "Llena la cuadrícula sin repetir dibujos en fila, columna ni cuadro.", icon: Grid2x2 },
+  { id: "cajitas", text: "Traza rayas por turnos: quien cierra la cajita se la queda.", icon: SquareDot },
+  { id: "barquitos", text: "Encuentra los barquitos de Mochito antes que él los tuyos.", icon: Ship },
+  { id: "gusanito", text: "Come galletas para crecer sin chocar con la orilla ni tu cola.", icon: Worm },
   { id: "pasos", text: "Pon en orden los pasos de tus recetas.", icon: ListOrdered },
   { id: "memoria", text: "Encuentra las parejas de ingredientes.", icon: Brain },
   { id: "adivina", text: "Pistas de ingredientes y a adivinar.", icon: Search },
@@ -147,6 +152,10 @@ function Inner() {
   if (game === "domino") return <DominoGame key={k} play={play} onExit={exit} />;
   if (game === "damas") return <CheckersGame key={k} play={play} onExit={exit} />;
   if (game === "huesos") return <BonesGame key={k} play={play} onExit={exit} />;
+  if (game === "sudoku") return <SudokuGame key={k} play={play} onExit={exit} />;
+  if (game === "cajitas") return <BoxesGame key={k} play={play} onExit={exit} />;
+  if (game === "barquitos") return <ShipsGame key={k} play={play} onExit={exit} />;
+  if (game === "gusanito") return <WormGame key={k} play={play} onExit={exit} />;
 
   return (
     <div className="flex max-w-5xl flex-col gap-6">

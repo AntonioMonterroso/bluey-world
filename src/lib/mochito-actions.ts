@@ -12,6 +12,7 @@ import {
   type CourseId, type RoomSlot, type Treasure, type Treat,
 } from "@/lib/mochito-extra-2";
 import type { GameEvent } from "@/lib/db/db";
+import { CHORES, CHORES_ALL_COINS, CHORE_COIN, SHELLS, SLEEP_COINS, SLEEP_HEARTS, beachCoins, choresOf, kiteCoins, type ChoreId, type Shell } from "@/lib/mochito-extra-6";
 import { DAYCARE_COINS, DAYCARE_PERFECT, PLAY_COINS, TOYS, WORKSHOP_COINS, type Toy } from "@/lib/mochito-extra-5";
 import {
   BDAY_COINS, BDAY_FAV_COINS, FAIR_COINS, FRIEND_BDAYS, GIFTS, TEETH_COINS, TEETH_STREAK, TEETH_STREAK_COINS, TREE_DONE_COINS, TREE_PARTS, TREE_PART_COINS,
@@ -38,6 +39,8 @@ export function medalInputOf(p: Partial<typeof DEFAULT_PROFILE>): MedalInput {
     cozy: roomCozy(p.mochito_room), treasures: Object.values(p.mochito_treasures ?? {}).filter((n) => n > 0).length,
     diplomas: diplomas(p.mochito_school), bakedKinds: Object.values(p.mochito_baked ?? {}).filter((n) => n > 0).length,
     recycled: p.mochito_clean?.total ?? 0, toyKinds: Object.values(p.mochito_workshop?.fixed ?? {}).filter((n) => n > 0).length, perfectDaycare: (p.mochito_daycare?.perfect ?? 0) > 0,
+    kiteBest: p.mochito_kite?.best ?? 0, shellKinds: Object.values(p.mochito_beach?.shells ?? {}).filter((n) => (n ?? 0) > 0).length,
+    sleepFriends: Object.keys(p.mochito_sleep?.friends ?? {}).length, choreStars: p.mochito_chores?.stars ?? 0,
     teethBest: p.mochito_teeth?.best ?? 0, treeParts: (p.mochito_tree?.built ?? []).length, bigPrizes: p.mochito_fair?.big ?? 0, fbdayFriends: Object.keys(p.mochito_fbdays ?? {}).length,
     buddyHearts: p.mochito_buddy?.hearts ?? 0, stars: new Set(p.mochito_camp?.stars ?? []).size, perfectStand: (p.mochito_stand?.perfect ?? 0) > 0,
   };
@@ -634,4 +637,80 @@ export async function finishRepair(toy: Toy, friendId: string) {
   });
   await writeAwards([{ id: `mochito-taller:${d}`, kind: "mochito", label: `Taller: ${TOYS[toy].name}`, xp: 0, coins: WORKSHOP_COINS, at: now }], await db.game_events.toArray());
   return mochitoDo("repair");
+}
+
+// ── Barrilete ───────────────────────────────────────────────────────
+
+/** Bajaron el barrilete: se guarda la altura. El primer vuelo del día da monedas según lo alto que llegó. */
+export async function finishKite(height: number) {
+  const now = Date.now();
+  const d = dayKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  const first = p.mochito_kite?.last !== d;
+  const best = Math.max(p.mochito_kite?.best ?? 0, height);
+  await updateProfile({ mochito_kite: { last: d, best, flights: (p.mochito_kite?.flights ?? 0) + 1 }, mochito_log: first ? appendLog(p.mochito_log, now, logLine({ kind: "kite", height })) : p.mochito_log });
+  const coins = first ? kiteCoins(height) : 0;
+  if (coins > 0) await writeAwards([{ id: `mochito-barrilete:${d}`, kind: "mochito", label: `Barrilete a ${height} m`, xp: 0, coins, at: now }], await db.game_events.toArray());
+  const r = await mochitoDo("kite");
+  return { ...r, coins, record: height > (p.mochito_kite?.best ?? 0) };
+}
+
+// ── Playa ───────────────────────────────────────────────────────────
+
+/** Se acabó el día de playa (uno al día): guarda las conchas y paga una moneda por cada una, más por las raras. */
+export async function finishBeach(found: Shell[]) {
+  const now = Date.now();
+  const d = dayKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_beach?.last === d) return null;
+  const shells = { ...p.mochito_beach?.shells };
+  for (const s of found) shells[s] = (shells[s] ?? 0) + 1;
+  const rare = [...new Set(found.filter((s) => SHELLS[s].rare))].map((s) => `una ${SHELLS[s].name}`);
+  await updateProfile({ mochito_beach: { last: d, shells, castles: (p.mochito_beach?.castles ?? 0) + 1 }, mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "beach", shells: found.length, rare })) });
+  const coins = beachCoins(found);
+  if (coins > 0) await writeAwards([{ id: `mochito-playa:${d}`, kind: "mochito", label: "Día de playa", xp: 0, coins, at: now }], await db.game_events.toArray());
+  const r = await mochitoDo("beach");
+  return { ...r, coins };
+}
+
+// ── Pijamada ────────────────────────────────────────────────────────
+
+/** Se durmieron: el amigo queda más amigo. Una pijamada al día. */
+export async function finishSleepover(friendId: string, snack: string) {
+  const now = Date.now();
+  const d = dayKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_sleep?.last === d) return null;
+  const friend = FRIENDS.find((f) => f.id === friendId);
+  await updateProfile({
+    mochito_sleep: { last: d, friends: { ...p.mochito_sleep?.friends, [friendId]: (p.mochito_sleep?.friends?.[friendId] ?? 0) + 1 } },
+    mochito_friends: { ...p.mochito_friends, [friendId]: (p.mochito_friends?.[friendId] ?? 0) + SLEEP_HEARTS },
+    mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "sleepover", friend: friend?.name ?? friendId, snack })),
+  });
+  await writeAwards([{ id: `mochito-pijamada:${d}`, kind: "mochito", label: `Pijamada con ${friend?.name ?? friendId}`, xp: 0, coins: SLEEP_COINS, at: now }], await db.game_events.toArray());
+  return mochitoDo("sleepover");
+}
+
+// ── Ayudar en casa ──────────────────────────────────────────────────
+
+/** Terminó una tarea de hoy: una estrella y una moneda. Si ya hizo las cuatro, un extra y queda en el diario. */
+export async function finishChore(chore: ChoreId) {
+  const now = Date.now();
+  const d = dayKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  const today = choresOf(d);
+  const prev = p.mochito_chores?.day === d ? p.mochito_chores.done ?? [] : [];
+  if (!today.includes(chore) || prev.includes(chore)) return null;
+  const done = [...prev, chore];
+  const all = today.every((c) => done.includes(c));
+  await updateProfile({
+    mochito_chores: { day: d, done, stars: (p.mochito_chores?.stars ?? 0) + 1 },
+    mochito_log: all ? appendLog(p.mochito_log, now, logLine({ kind: "chores", did: today.map((c) => CHORES[c].did) })) : p.mochito_log,
+  });
+  await writeAwards([
+    { id: `mochito-casa:${d}:${chore}`, kind: "mochito", label: CHORES[chore].name, xp: 0, coins: CHORE_COIN, at: now },
+    ...(all ? [{ id: `mochito-casa:${d}:todas`, kind: "mochito" as const, label: "Ayudó en todo en casa", xp: 0, coins: CHORES_ALL_COINS, at: now }] : []),
+  ], await db.game_events.toArray());
+  const r = await mochitoDo("chores");
+  return { ...r, all };
 }
