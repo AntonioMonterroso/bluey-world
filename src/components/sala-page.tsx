@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Grid3x3 as GridIcon, SpellCheck, Flag, Blocks, Hash, Layers, Cylinder, Target, TrainFront, Drum, Fish, Disc3, SearchCheck, Type, Palette, Puzzle, Route, CloudRain, Bone, Brain, ChefHat, Music, ScanSearch, CircleDot, Grid3x3, Dog, EyeOff, Footprints, LayoutGrid, Wand2, Cake, Coins, ListOrdered, Search, ShoppingBasket, Timer, Trophy } from "lucide-react";
+import { Columns4, Calculator, Dices, Scissors, Grid3x3 as GridIcon, SpellCheck, Flag, Blocks, Hash, Layers, Cylinder, Target, TrainFront, Drum, Fish, Disc3, SearchCheck, Type, Palette, Puzzle, Route, CloudRain, Bone, Brain, ChefHat, Music, ScanSearch, CircleDot, Grid3x3, Dog, EyeOff, Footprints, LayoutGrid, Wand2, Cake, Coins, ListOrdered, Search, ShoppingBasket, Timer, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CakeGame } from "@/components/cake-game";
 import { GuessGame, MemoryGame, Result, StepsGame, type Play } from "@/components/mini-games";
@@ -14,6 +14,7 @@ import { BoneGame, RhythmGame } from "@/components/mochito-games-5";
 import { BubbleGame, LoteriaGame } from "@/components/mochito-games-6";
 import { CookieRainGame, MazeGame, PaintGame, PuzzleGame } from "@/components/mochito-games-7";
 import { DiffGame, FishGame, FrisbeeGame, SoupGame } from "@/components/mochito-games-8";
+import { ConnectFourGame, LaddersGame, RpsGame, SumsGame } from "@/components/mochito-games-11";
 import { GolfGame, HangmanGame, TicTacGame, TowerGame } from "@/components/mochito-games-10";
 import { BowlingGame, CansGame, DrumGame, NumbersGame, ShadowGame, TrainGame } from "@/components/mochito-games-9";
 import { mochitoGameGoto, useClearMochitoGoto } from "@/lib/mochito-goto";
@@ -56,6 +57,10 @@ const LIST: { id: MiniGame; text: string; icon: typeof Brain }[] = [
   { id: "ahorcado", text: "Adivina la palabra antes de que Mochito se coma la galleta.", icon: SpellCheck },
   { id: "golf", text: "Hoyos en el parque con obstáculos: apunta y elige la fuerza.", icon: Flag },
   { id: "torre", text: "Suelta cada bloque justo encima para hacer la torre más alta.", icon: Blocks },
+  { id: "cuatro", text: "Contra Mochito: junta cuatro fichas en línea antes que él.", icon: Columns4 },
+  { id: "sumas", text: "Junta exacto los huesos que pide Mochito, con los menos toques.", icon: Calculator },
+  { id: "escaleras", text: "Juego de mesa con dado: escaleras que suben y resbaladillas que bajan.", icon: Dices },
+  { id: "piedra", text: "Al mejor de cinco contra Mochito. Descubre sus mañas.", icon: Scissors },
   { id: "pasos", text: "Pon en orden los pasos de tus recetas.", icon: ListOrdered },
   { id: "memoria", text: "Encuentra las parejas de ingredientes.", icon: Brain },
   { id: "adivina", text: "Pistas de ingredientes y a adivinar.", icon: Search },
@@ -129,6 +134,10 @@ function Inner() {
   if (game === "ahorcado") return <HangmanGame key={k} play={play} onExit={exit} />;
   if (game === "golf") return <GolfGame key={k} play={play} onExit={exit} />;
   if (game === "torre") return <TowerGame key={k} play={play} onExit={exit} />;
+  if (game === "cuatro") return <ConnectFourGame key={k} play={play} onExit={exit} />;
+  if (game === "sumas") return <SumsGame key={k} play={play} onExit={exit} />;
+  if (game === "escaleras") return <LaddersGame key={k} play={play} onExit={exit} />;
+  if (game === "piedra") return <RpsGame key={k} play={play} onExit={exit} />;
 
   return (
     <div className="flex max-w-5xl flex-col gap-6">

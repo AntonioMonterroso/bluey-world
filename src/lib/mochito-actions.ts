@@ -12,6 +12,10 @@ import {
   type CourseId, type RoomSlot, type Treasure, type Treat,
 } from "@/lib/mochito-extra-2";
 import type { GameEvent } from "@/lib/db/db";
+import {
+  BDAY_COINS, BDAY_FAV_COINS, FAIR_COINS, FRIEND_BDAYS, GIFTS, TEETH_COINS, TEETH_STREAK, TEETH_STREAK_COINS, TREE_DONE_COINS, TREE_PARTS, TREE_PART_COINS,
+  addMats, canBuild, fairKey, gatherOf, teethNext, type Gift, type TreePart,
+} from "@/lib/mochito-extra-4";
 import { CAMP_COINS, CONSTELLATIONS, LETTER_COINS, PETS, STAND_COIN_PER, buddyName, campKey, type Constellation, type PetKind } from "@/lib/mochito-extra-3";
 import { RIBBONS, WEATHER, weatherOf, type Ribbon, type Story, type Weather } from "@/lib/mochito-more";
 import { MOCHITO_WEAR, WEAR_ITEMS, mochitoWearUnlocked } from "@/lib/game/wardrobe";
@@ -32,6 +36,7 @@ export function medalInputOf(p: Partial<typeof DEFAULT_PROFILE>): MedalInput {
     places: Object.values(p.mochito_trips?.places ?? {}).filter((n) => n > 0).length,
     cozy: roomCozy(p.mochito_room), treasures: Object.values(p.mochito_treasures ?? {}).filter((n) => n > 0).length,
     diplomas: diplomas(p.mochito_school), bakedKinds: Object.values(p.mochito_baked ?? {}).filter((n) => n > 0).length,
+    teethBest: p.mochito_teeth?.best ?? 0, treeParts: (p.mochito_tree?.built ?? []).length, bigPrizes: p.mochito_fair?.big ?? 0, fbdayFriends: Object.keys(p.mochito_fbdays ?? {}).length,
     buddyHearts: p.mochito_buddy?.hearts ?? 0, stars: new Set(p.mochito_camp?.stars ?? []).size, perfectStand: (p.mochito_stand?.perfect ?? 0) > 0,
   };
 }
@@ -485,4 +490,86 @@ export async function finishStand(ok: number, total: number) {
   await updateProfile({ mochito_stand: { last: d, perfect: (p.mochito_stand?.perfect ?? 0) + (ok === total ? 1 : 0) }, mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "stand", ok, total })) });
   if (ok > 0) await writeAwards([{ id: `mochito-limonada:${d}`, kind: "mochito", label: "Puesto de limonada de Mochito", xp: 0, coins: ok * STAND_COIN_PER, at: now }], await db.game_events.toArray());
   return mochitoDo("stand");
+}
+
+// ── Dientes ─────────────────────────────────────────────────────────
+
+/** Le cepillaste los dientes (cuenta una vez al día). Cada 7 días seguidos, la doctora lo felicita con un premio. */
+export async function brushTeeth() {
+  const now = Date.now();
+  const d = dayKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_teeth?.last === d) return null;
+  const t = teethNext(p.mochito_teeth, now);
+  await updateProfile({ mochito_teeth: t, mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "teeth", streak: t.streak ?? 1 })) });
+  const awards = [{ id: `mochito-dientes:${d}`, kind: "mochito", label: "Le cepillaste los dientes a Mochito", xp: 0, coins: TEETH_COINS, at: now }];
+  const bonus = (t.streak ?? 0) % TEETH_STREAK === 0;
+  if (bonus) awards.push({ id: `mochito-dientes-racha:${d}`, kind: "mochito", label: `Racha de ${t.streak} días de dientes limpios`, xp: 0, coins: TEETH_STREAK_COINS, at: now });
+  await writeAwards(awards, await db.game_events.toArray());
+  const r = await mochitoDo("teeth");
+  return { ...r, streak: t.streak ?? 1, bonus };
+}
+
+// ── Casita del árbol ────────────────────────────────────────────────
+
+/** Junta los materiales del día (una vez al día). */
+export async function gatherTree() {
+  const now = Date.now();
+  const d = dayKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  const t = p.mochito_tree ?? {};
+  if (t.gathered === d) return null;
+  const got = gatherOf(d);
+  await updateProfile({ mochito_tree: { ...t, gathered: d, mats: addMats(t.mats, got) } });
+  return got;
+}
+
+/** Construye una parte (una por día) si alcanzan los materiales. */
+export async function buildTree(part: TreePart) {
+  const now = Date.now();
+  const d = dayKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  const t = p.mochito_tree ?? {};
+  const info = TREE_PARTS.find((x) => x.id === part)!;
+  if (t.builtDay === d || (t.built ?? []).includes(part) || !canBuild(t, info)) return null;
+  const built = [...(t.built ?? []), part];
+  const done = built.length >= TREE_PARTS.length;
+  await updateProfile({ mochito_tree: { ...t, built, builtDay: d, mats: addMats(t.mats, info.need, -1) }, mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "tree", part: info.name, done })) });
+  const awards = [{ id: `mochito-arbol:${part}`, kind: "mochito", label: `Casita del árbol: ${info.name.toLowerCase()}`, xp: 0, coins: TREE_PART_COINS, at: now }];
+  if (done) awards.push({ id: "mochito-arbol:terminada", kind: "mochito", label: "¡Casita del árbol terminada!", xp: 0, coins: TREE_DONE_COINS, at: now });
+  await writeAwards(awards, await db.game_events.toArray());
+  const r = await mochitoDo("tree");
+  return { ...r, done };
+}
+
+// ── Feria ───────────────────────────────────────────────────────────
+
+/** Terminó la feria del mes: guarda el premio de peluche. */
+export async function finishFair(prize: string, big: boolean) {
+  const now = Date.now();
+  const key = fairKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_fair?.last === key) return null;
+  await updateProfile({ mochito_fair: { last: key, prizes: [...(p.mochito_fair?.prizes ?? []), prize].slice(-24), big: (p.mochito_fair?.big ?? 0) + (big ? 1 : 0) }, mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "fair", prize })) });
+  await writeAwards([{ id: `mochito-feria:${key}`, kind: "mochito", label: "Feria con Mochito", xp: 0, coins: FAIR_COINS, at: now }], await db.game_events.toArray());
+  return mochitoDo("fair");
+}
+
+// ── Cumpleaños de sus amigos ────────────────────────────────────────
+
+/** Festeja el cumpleaños de un amigo: si le das su regalo favorito, se pone más contento. */
+export async function celebrateFriend(id: string, year: number, gift: Gift) {
+  const now = Date.now();
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_fbdays?.[id] === year) return null;
+  const fav = FRIEND_BDAYS[id]?.likes === gift;
+  const friend = FRIENDS.find((f) => f.id === id);
+  await updateProfile({
+    mochito_fbdays: { ...p.mochito_fbdays, [id]: year },
+    mochito_friends: { ...p.mochito_friends, [id]: (p.mochito_friends?.[id] ?? 0) + (fav ? 2 : 1) },
+    mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "fbday", friend: friend?.name ?? id, gift: GIFTS[gift] })),
+  });
+  await writeAwards([{ id: `mochito-cumple-amigo:${id}:${year}`, kind: "mochito", label: `Cumpleaños de ${friend?.name ?? id}`, xp: 0, coins: BDAY_COINS + (fav ? BDAY_FAV_COINS : 0), at: now }], await db.game_events.toArray());
+  const r = await mochitoDo("fbday");
+  return { ...r, fav };
 }
