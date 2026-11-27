@@ -12,6 +12,7 @@ import {
   type CourseId, type RoomSlot, type Treasure, type Treat,
 } from "@/lib/mochito-extra-2";
 import type { GameEvent } from "@/lib/db/db";
+import { CHANGE_BONUS, DINO_DONE_COINS, DINO_PARTS, MARKET_COINS, PICNIC_HEART, RACE_COINS, digCoins, nextPart, picnicCoins, type Derby } from "@/lib/mochito-extra-7";
 import { CHORES, CHORES_ALL_COINS, CHORE_COIN, SHELLS, SLEEP_COINS, SLEEP_HEARTS, beachCoins, choresOf, kiteCoins, type ChoreId, type Shell } from "@/lib/mochito-extra-6";
 import { DAYCARE_COINS, DAYCARE_PERFECT, PLAY_COINS, TOYS, WORKSHOP_COINS, type Toy } from "@/lib/mochito-extra-5";
 import {
@@ -41,6 +42,7 @@ export function medalInputOf(p: Partial<typeof DEFAULT_PROFILE>): MedalInput {
     recycled: p.mochito_clean?.total ?? 0, toyKinds: Object.values(p.mochito_workshop?.fixed ?? {}).filter((n) => n > 0).length, perfectDaycare: (p.mochito_daycare?.perfect ?? 0) > 0,
     kiteBest: p.mochito_kite?.best ?? 0, shellKinds: Object.values(p.mochito_beach?.shells ?? {}).filter((n) => (n ?? 0) > 0).length,
     sleepFriends: Object.keys(p.mochito_sleep?.friends ?? {}).length, choreStars: p.mochito_chores?.stars ?? 0,
+    exactChange: p.mochito_market?.exact ?? 0, dinoParts: p.mochito_dig?.found ?? 0, perfectPicnic: (p.mochito_picnic?.perfect ?? 0) > 0, raceWins: p.mochito_derby?.wins ?? 0,
     teethBest: p.mochito_teeth?.best ?? 0, treeParts: (p.mochito_tree?.built ?? []).length, bigPrizes: p.mochito_fair?.big ?? 0, fbdayFriends: Object.keys(p.mochito_fbdays ?? {}).length,
     buddyHearts: p.mochito_buddy?.hearts ?? 0, stars: new Set(p.mochito_camp?.stars ?? []).size, perfectStand: (p.mochito_stand?.perfect ?? 0) > 0,
   };
@@ -713,4 +715,77 @@ export async function finishChore(chore: ChoreId) {
   ], await db.game_events.toArray());
   const r = await mochitoDo("chores");
   return { ...r, all };
+}
+
+// ── Mercado ─────────────────────────────────────────────────────────
+
+/** Volvieron del mercado (una vez al día). Si eligió bien el vuelto, hay extra. */
+export async function finishMarket(items: string[], rightChange: boolean) {
+  const now = Date.now();
+  const d = dayKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_market?.last === d) return null;
+  await updateProfile({ mochito_market: { last: d, trips: (p.mochito_market?.trips ?? 0) + 1, exact: (p.mochito_market?.exact ?? 0) + (rightChange ? 1 : 0) }, mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "market", items })) });
+  const coins = MARKET_COINS + (rightChange ? CHANGE_BONUS : 0);
+  await writeAwards([{ id: `mochito-mercado:${d}`, kind: "mochito", label: "Compras en el mercado", xp: 0, coins, at: now }], await db.game_events.toArray());
+  const r = await mochitoDo("market");
+  return { ...r, coins };
+}
+
+// ── Fósiles ─────────────────────────────────────────────────────────
+
+/** Desenterraron la pieza del día: va al museo. Si completa el dinosaurio, premio extra. */
+export async function finishDig(cracks: number) {
+  const now = Date.now();
+  const d = dayKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_dig?.last === d) return null;
+  const found = p.mochito_dig?.found ?? 0;
+  const np = nextPart(found);
+  if (np.done || !np.dino) return null;
+  const done = np.part === DINO_PARTS.length - 1;
+  await updateProfile({ mochito_dig: { last: d, found: found + 1, careful: (p.mochito_dig?.careful ?? 0) + (cracks ? 0 : 1) }, mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "dig", part: DINO_PARTS[np.part], dino: np.dino.name, done })) });
+  const coins = digCoins(cracks) + (done ? DINO_DONE_COINS : 0);
+  await writeAwards([{ id: `mochito-fosil:${d}`, kind: "mochito", label: `Fósil: ${DINO_PARTS[np.part]} de ${np.dino.name}`, xp: 0, coins, at: now }], await db.game_events.toArray());
+  const r = await mochitoDo("dig");
+  return { ...r, coins, done, dino: np.dino.name, part: DINO_PARTS[np.part] };
+}
+
+// ── Picnic ──────────────────────────────────────────────────────────
+
+/** Terminó el picnic (uno al día): monedas por la comida que se salvó y los amigos quedan más unidos. */
+export async function finishPicnic(friendIds: string[], left: number) {
+  const now = Date.now();
+  const d = dayKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_picnic?.last === d) return null;
+  const friends = { ...p.mochito_friends };
+  for (const id of friendIds) friends[id] = (friends[id] ?? 0) + PICNIC_HEART;
+  const names = friendIds.map((id) => FRIENDS.find((f) => f.id === id)?.name ?? id);
+  await updateProfile({
+    mochito_picnic: { last: d, perfect: (p.mochito_picnic?.perfect ?? 0) + (left >= 4 ? 1 : 0), total: (p.mochito_picnic?.total ?? 0) + 1 },
+    mochito_friends: friends,
+    mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "picnic", friends: names, left })),
+  });
+  await writeAwards([{ id: `mochito-picnic:${d}`, kind: "mochito", label: "Picnic en el parque", xp: 0, coins: picnicCoins(left), at: now }], await db.game_events.toArray());
+  const r = await mochitoDo("picnic");
+  return { ...r, coins: picnicCoins(left) };
+}
+
+// ── Carrera de carritos ─────────────────────────────────────────────
+
+/** Llegó a la meta. La primera carrera de la semana da monedas según el lugar y cuenta para las victorias. */
+export async function finishRace(week: string, place: number, time: number, cart: NonNullable<Derby["cart"]>) {
+  const now = Date.now();
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  const first = p.mochito_derby?.week !== week;
+  const best = Math.min(p.mochito_derby?.best ?? Infinity, time);
+  await updateProfile({
+    mochito_derby: { week, races: (p.mochito_derby?.races ?? 0) + 1, wins: (p.mochito_derby?.wins ?? 0) + (first && place === 1 ? 1 : 0), best, cart },
+    mochito_log: first ? appendLog(p.mochito_log, now, logLine({ kind: "race", place, time })) : p.mochito_log,
+  });
+  const coins = first ? RACE_COINS[place - 1] ?? 2 : 0;
+  if (coins) await writeAwards([{ id: `mochito-carrera:${week}`, kind: "mochito", label: `Carrera de carritos: ${place}.º lugar`, xp: 0, coins, at: now }], await db.game_events.toArray());
+  const r = await mochitoDo("race");
+  return { ...r, coins, first, record: time < (p.mochito_derby?.best ?? Infinity) };
 }

@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 /** Deja dicho a qué pantalla va Mochito (un juego o el vestidor) para que se abra directo ahí. */
 export const MOCHITO_GOTO = "bw-mochito-goto";
-export type MochitoGoto = "vestir" | "juego:mochito" | "juego:pelota" | "juego:escondidas" | "juego:simon" | "juego:carrera" | "juego:cocinam" | "juego:memoriam" | "juego:hueso" | "juego:ritmo" | "juego:burbujas" | "juego:loteria" | "juego:rompecabezas" | "juego:lluvia" | "juego:laberinto" | "juego:pintar" | "juego:pesca" | "juego:frisbee" | "juego:diferencias" | "juego:sopa" | "juego:numeros" | "juego:sombras" | "juego:latas" | "juego:bolos" | "juego:tren" | "juego:tambor" | "juego:gato" | "juego:ahorcado" | "juego:golf" | "juego:torre" | "juego:cuatro" | "juego:sumas" | "juego:escaleras" | "juego:piedra" | "juego:topos" | "juego:domino" | "juego:damas" | "juego:huesos" | "juego:sudoku" | "juego:cajitas" | "juego:barquitos" | "juego:gusanito";
+export type MochitoGoto = "vestir" | "juego:mochito" | "juego:pelota" | "juego:escondidas" | "juego:simon" | "juego:carrera" | "juego:cocinam" | "juego:memoriam" | "juego:hueso" | "juego:ritmo" | "juego:burbujas" | "juego:loteria" | "juego:rompecabezas" | "juego:lluvia" | "juego:laberinto" | "juego:pintar" | "juego:pesca" | "juego:frisbee" | "juego:diferencias" | "juego:sopa" | "juego:numeros" | "juego:sombras" | "juego:latas" | "juego:bolos" | "juego:tren" | "juego:tambor" | "juego:gato" | "juego:ahorcado" | "juego:golf" | "juego:torre" | "juego:cuatro" | "juego:sumas" | "juego:escaleras" | "juego:piedra" | "juego:topos" | "juego:domino" | "juego:damas" | "juego:huesos" | "juego:sudoku" | "juego:cajitas" | "juego:barquitos" | "juego:gusanito" | "juego:voltea" | "juego:colores" | "juego:tubos" | "juego:dibujo";
 export const goTo = (where: MochitoGoto) => { try { sessionStorage.setItem(MOCHITO_GOTO, where); } catch {} };
 
 /** ¿Venimos del rincón de Mochito al vestidor? */
@@ -13,7 +13,7 @@ export function cameFromMochito(where: "vestir") {
 }
 
 /** Si venimos del rincón de Mochito a jugar, cuál de sus juegos abrir. */
-const MOCHITO_GAMES = ["mochito", "pelota", "escondidas", "simon", "carrera", "cocinam", "memoriam", "hueso", "ritmo", "burbujas", "loteria", "rompecabezas", "lluvia", "laberinto", "pintar", "pesca", "frisbee", "diferencias", "sopa", "numeros", "sombras", "latas", "bolos", "tren", "tambor", "gato", "ahorcado", "golf", "torre", "cuatro", "sumas", "escaleras", "piedra", "topos", "domino", "damas", "huesos", "sudoku", "cajitas", "barquitos", "gusanito"] as const;
+const MOCHITO_GAMES = ["mochito", "pelota", "escondidas", "simon", "carrera", "cocinam", "memoriam", "hueso", "ritmo", "burbujas", "loteria", "rompecabezas", "lluvia", "laberinto", "pintar", "pesca", "frisbee", "diferencias", "sopa", "numeros", "sombras", "latas", "bolos", "tren", "tambor", "gato", "ahorcado", "golf", "torre", "cuatro", "sumas", "escaleras", "piedra", "topos", "domino", "damas", "huesos", "sudoku", "cajitas", "barquitos", "gusanito", "voltea", "colores", "tubos", "dibujo"] as const;
 export function mochitoGameGoto(): (typeof MOCHITO_GAMES)[number] | null {
   try {
     const v = sessionStorage.getItem(MOCHITO_GOTO)?.replace("juego:", "");

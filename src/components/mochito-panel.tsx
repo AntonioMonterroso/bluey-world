@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { Wind as WindIcon, Shell as ShellIcon, Flashlight, House, Grid2x2, SquareDot, Ship, Worm, Baby, Drama, Recycle, Wrench, Shovel as ShovelIcon, RectangleHorizontal as Domino, Crown as CrownIcon, Bone as BoneIcon, Smile, TreeDeciduous, FerrisWheel, Cake as CakeIcon, Columns4, Calculator, Dices, Scissors as ScissorsIcon, Cat, Mail as MailIcon, Tent, GlassWater, Grid3x3 as GridIcon, SpellCheck, Flag, Blocks, Armchair, ChefHat, GraduationCap, Map as MapIcon, Hash, Layers, Cylinder, Target as TargetIcon, Drum, TrainFront, Fish, Disc3, SearchCheck, Type, Sprout, Scissors, Luggage, PartyPopper, BookOpen, CloudRain, Leaf, Palette, Puzzle, Route, Stethoscope, Sun, Trophy, Wind, Award, Check, Star, Target, BookHeart, Cake, Gift, Moon, Bath, Bell, Bone, Camera, Coins, Cookie, Dog, Droplets, Flower2, Footprints, Gamepad2, Hand, Heart, Home, Lock, Shirt, Sparkles, TreePine, Users, Wand2 } from "lucide-react";
+import { ShoppingBasket, Sandwich, CarFront, Contrast, Rainbow, Waypoints, Image as ImageIcon, Wind as WindIcon, Shell as ShellIcon, Flashlight, House, Grid2x2, SquareDot, Ship, Worm, Baby, Drama, Recycle, Wrench, Shovel as ShovelIcon, RectangleHorizontal as Domino, Crown as CrownIcon, Bone as BoneIcon, Smile, TreeDeciduous, FerrisWheel, Cake as CakeIcon, Columns4, Calculator, Dices, Scissors as ScissorsIcon, Cat, Mail as MailIcon, Tent, GlassWater, Grid3x3 as GridIcon, SpellCheck, Flag, Blocks, Armchair, ChefHat, GraduationCap, Map as MapIcon, Hash, Layers, Cylinder, Target as TargetIcon, Drum, TrainFront, Fish, Disc3, SearchCheck, Type, Sprout, Scissors, Luggage, PartyPopper, BookOpen, CloudRain, Leaf, Palette, Puzzle, Route, Stethoscope, Sun, Trophy, Wind, Award, Check, Star, Target, BookHeart, Cake, Gift, Moon, Bath, Bell, Bone, Camera, Coins, Cookie, Dog, Droplets, Flower2, Footprints, Gamepad2, Hand, Heart, Home, Lock, Shirt, Sparkles, TreePine, Users, Wand2 } from "lucide-react";
 import { DressedImage } from "@/components/dressed-image";
 import { MochitoFigure } from "@/components/mochito-figure";
 import { goTo, type MochitoGoto } from "@/lib/mochito-goto";
@@ -26,6 +26,7 @@ import { HouseArt, HouseDesigner } from "@/components/mochito-house";
 import { PhotoTab } from "@/components/mochito-photos";
 import { ShowScene, StoryScene, VetScene, WeatherLayer } from "@/components/mochito-care-2";
 import { GardenScene, PartyScene, SalonScene, SouvenirShelf, TripScene } from "@/components/mochito-care-3";
+import { DerbyScene, DigScene, MarketScene, PicnicScene } from "@/components/mochito-care-9";
 import { BeachScene, ChoresScene, KiteScene, SleepoverScene } from "@/components/mochito-care-8";
 import { choresOf } from "@/lib/mochito-extra-6";
 import { CleanScene, DaycareScene, TheaterScene, WorkshopScene } from "@/components/mochito-care-7";
@@ -98,6 +99,10 @@ const GAMES: { goto: MochitoGoto; name: string; icon: typeof Bone }[] = [
   { goto: "juego:cajitas", name: "Cajitas", icon: SquareDot },
   { goto: "juego:barquitos", name: "Barquitos", icon: Ship },
   { goto: "juego:gusanito", name: "Gusanito", icon: Worm },
+  { goto: "juego:voltea", name: "Voltea fichas", icon: Contrast },
+  { goto: "juego:colores", name: "Colores", icon: Rainbow },
+  { goto: "juego:tubos", name: "Tuberías", icon: Waypoints },
+  { goto: "juego:dibujo", name: "Dibujo", icon: ImageIcon },
 ];
 
 const WEATHER_ICON: Record<Weather, typeof Sun> = { sol: Sun, lluvia: CloudRain, viento: Wind, hojas: Leaf };
@@ -134,7 +139,7 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
   const [practice, setPractice] = useState<Record<string, number>>({});
   const [games, setGames] = useState(false);
   const [bath, setBath] = useState(false);
-  const [scene, setScene] = useState<"vet" | "story" | "show" | "garden" | "salon" | "trip" | "party" | "room" | "street" | "school" | "bake" | "buddy" | "mail" | "camp" | "stand" | "teeth" | "tree" | "fair" | "fbday" | "daycare" | "theater" | "clean" | "workshop" | "kite" | "beach" | "sleep" | "chores" | null>(null);
+  const [scene, setScene] = useState<"vet" | "story" | "show" | "garden" | "salon" | "trip" | "party" | "room" | "street" | "school" | "bake" | "buddy" | "mail" | "camp" | "stand" | "teeth" | "tree" | "fair" | "fbday" | "daycare" | "theater" | "clean" | "workshop" | "kite" | "beach" | "sleep" | "chores" | "market" | "dig" | "picnic" | "derby" | null>(null);
   const [walk, setWalk] = useState<{ phase: "going" | "done"; find?: Awaited<ReturnType<typeof mochitoWalk>> } | null>(null);
   const walkRef = useRef<{ arrived: boolean; find?: Awaited<ReturnType<typeof mochitoWalk>> }>({ arrived: false });
   const did = useMochitoDid(open ? now : 0);
@@ -298,7 +303,15 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
 
         {tab === "cuidar" && (
           <div role="tabpanel" className="flex flex-col gap-4">
-            {scene === "kite" ? (
+            {scene === "market" ? (
+              <MarketScene day={dayKey(now)} done={profile.mochito_market?.last === dayKey(now)} onLine={setLine} onClose={() => setScene(null)} />
+            ) : scene === "dig" ? (
+              <DigScene day={dayKey(now)} dig={profile.mochito_dig} onLine={setLine} onClose={() => setScene(null)} />
+            ) : scene === "picnic" ? (
+              <PicnicScene day={dayKey(now)} done={profile.mochito_picnic?.last === dayKey(now)} friends={met} look={{ outfit: profile.mochito_outfit, groom }} onLine={setLine} onClose={() => setScene(null)} />
+            ) : scene === "derby" ? (
+              <DerbyScene week={campKey(now)} derby={profile.mochito_derby} friendIds={met.map((f) => f.id)} look={{ outfit: profile.mochito_outfit, groom }} onLine={setLine} onClose={() => setScene(null)} />
+            ) : scene === "kite" ? (
               <KiteScene day={dayKey(now)} kite={profile.mochito_kite} look={{ outfit: profile.mochito_outfit, groom }} onLine={setLine} onClose={() => setScene(null)} />
             ) : scene === "beach" ? (
               <BeachScene day={dayKey(now)} beach={profile.mochito_beach} look={{ outfit: profile.mochito_outfit, groom }} onLine={setLine} onClose={() => setScene(null)} />
@@ -415,6 +428,10 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
                   <button type="button" className={cn(action, profile.mochito_beach?.last !== dayKey(now) && "border-primary")} onClick={() => { setScene("beach"); sfx("click"); setLine(profile.mochito_beach?.last === dayKey(now) ? "Todavía tengo arena en las patas. ¿Vemos las conchas?" : "¡A la playa! Yo llevo la cubeta."); }}><ShellIcon className="size-6 text-primary" aria-hidden /> Playa</button>
                   <button type="button" className={cn(action, profile.mochito_sleep?.last !== dayKey(now) && "border-primary")} onClick={() => { setScene("sleep"); sfx("click"); setLine(profile.mochito_sleep?.last === dayKey(now) ? "Uaaah… todavía tengo sueño de la pijamada." : "¿Hacemos pijamada? ¡Invito a un amigo!"); }}><Flashlight className="size-6 text-primary" aria-hidden /> Pijamada</button>
                   <button type="button" className={cn(action, !(profile.mochito_chores?.day === dayKey(now) && (profile.mochito_chores.done ?? []).length >= choresOf(dayKey(now)).length) && "border-primary")} onClick={() => { setScene("chores"); sfx("click"); setLine("¿Ayudamos en casa? Yo detengo la cubeta… con la boca."); }}><House className="size-6 text-primary" aria-hidden /> Ayudar en casa</button>
+                  <button type="button" className={cn(action, profile.mochito_market?.last !== dayKey(now) && "border-primary")} onClick={() => { setScene("market"); sfx("click"); setLine(profile.mochito_market?.last === dayKey(now) ? "Ya fuimos al mercado. ¿Viste qué bien cargué la bolsa?" : "¿Vamos al mercado? Yo llevo la lista… en la boca."); }}><ShoppingBasket className="size-6 text-primary" aria-hidden /> Mercado</button>
+                  <button type="button" className={cn(action, profile.mochito_dig?.last !== dayKey(now) && "border-primary")} onClick={() => { setScene("dig"); sfx("click"); setLine(profile.mochito_dig?.last === dayKey(now) ? "¿Vemos el museo? ¡Nuestro dinosaurio va creciendo!" : "¡Escarbar es lo mío! ¿Buscamos huesos de dinosaurio?"); }}><ShovelIcon className="size-6 text-primary" aria-hidden /> Fósiles</button>
+                  <button type="button" className={cn(action, profile.mochito_picnic?.last !== dayKey(now) && "border-primary")} onClick={() => { setScene("picnic"); sfx("click"); setLine(profile.mochito_picnic?.last === dayKey(now) ? "Todavía estoy lleno del picnic." : "¿Picnic en el parque? ¡Yo cuido la canasta!"); }}><Sandwich className="size-6 text-primary" aria-hidden /> Picnic</button>
+                  <button type="button" className={cn(action, profile.mochito_derby?.week !== campKey(now) && "border-primary")} onClick={() => { setScene("derby"); sfx("click"); setLine(profile.mochito_derby?.week === campKey(now) ? "¿Otra bajada? ¡Esta vez más rápido!" : "¡Hay carrera de carritos esta semana! ¿Armamos el nuestro?"); }}><CarFront className="size-6 text-primary" aria-hidden /> Carrera</button>
                   <button type="button" className={action} onClick={talk}><Sparkles className="size-6 text-primary" aria-hidden /> Otra frase</button>
                 </div>
                 {games && (

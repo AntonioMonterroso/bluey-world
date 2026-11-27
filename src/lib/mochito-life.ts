@@ -86,7 +86,8 @@ export type LogEvent =
   | { kind: "buddy"; name: string; what: string } | { kind: "letter"; from: string } | { kind: "camp"; stars: string } | { kind: "stand"; ok: number; total: number }
   | { kind: "teeth"; streak: number } | { kind: "tree"; part: string; done: boolean } | { kind: "fair"; prize: string } | { kind: "fbday"; friend: string; gift: string }
   | { kind: "daycare"; names: string[] } | { kind: "theater"; title: string } | { kind: "clean"; ok: number } | { kind: "repair"; toy: string; friend: string }
-  | { kind: "kite"; height: number } | { kind: "beach"; shells: number; rare: string[] } | { kind: "sleepover"; friend: string; snack: string } | { kind: "chores"; did: string[] };
+  | { kind: "kite"; height: number } | { kind: "beach"; shells: number; rare: string[] } | { kind: "sleepover"; friend: string; snack: string } | { kind: "chores"; did: string[] }
+  | { kind: "market"; items: string[] } | { kind: "dig"; part: string; dino: string; done: boolean } | { kind: "picnic"; friends: string[]; left: number } | { kind: "race"; place: number; time: number };
 
 const listOf = (a: string[]) => (a.length <= 1 ? a.join("") : `${a.slice(0, -1).join(", ")} y ${a[a.length - 1]}`);
 
@@ -134,6 +135,10 @@ export function logLine(ev: LogEvent): string {
     case "kite": return `Volamos el barrilete y llegó a ${ev.height} metros. ¡Casi toca las nubes!`;
     case "beach": return `Fuimos a la playa, hicimos un castillo de arena y juntamos ${ev.shells} ${ev.shells === 1 ? "cosa" : "cosas"} del mar${ev.rare.length ? `, ¡hasta ${listOf(ev.rare.map((r) => r.toLowerCase()))}!` : "."}`;
     case "sleepover": return `${ev.friend} se quedó a dormir. Hicimos una casita de sábanas, comimos ${ev.snack} y contamos un cuento de linterna.`;
+    case "market": return `Fuimos al mercado y compramos ${listOf(ev.items.map((x) => x.toLowerCase()))}. ¡Cargué la bolsa!`;
+    case "dig": return ev.done ? `¡Encontramos la última pieza! ${ev.dino} ya está completo en el museo.` : `Excavamos con cuidado y encontramos ${ev.part.toLowerCase()} de ${ev.dino}.`;
+    case "picnic": return `Hicimos un picnic${ev.friends.length ? ` con ${listOf(ev.friends)}` : ""}. ${ev.left ? "Espantamos a las hormigas y comimos rico." : "Las hormigas se llevaron todo… ¡pero nos reímos mucho!"}`;
+    case "race": return `Corrimos la carrera de carritos: quedamos en ${ev.place}.º lugar con ${ev.time} segundos.`;
     case "chores": return `Ayudamos en casa: ${listOf(ev.did)}. ¡Todo quedó en orden!`;
     case "gave": return ev.to ? `Le regalamos ${ev.what} a ${ev.to}. Se puso feliz.` : `Me diste ${ev.what} de mi jardín. ¡Qué rico!`;
     case "birthday": return `¡Cumplí ${ev.age} ${ev.age === 1 ? "año" : "años"}! Hubo pastel y regalo.`;
