@@ -82,6 +82,9 @@ function svgToImage(svg: SVGSVGElement, w: number, h: number, pad: number): Prom
   });
 }
 
+/** Espera algo, pero no más de `ms` (si se pasa, sigue sin eso). */
+const within = <T,>(p: Promise<T>, ms: number) => Promise.race([p, new Promise<null>((r) => setTimeout(() => r(null), ms))]);
+
 /** Toma la foto: fondo de la escena + todo lo que está en el escenario + la leyenda abajo. */
 async function snapshot(stage: HTMLElement, scene: Scene, caption: string) {
   const sr = stage.getBoundingClientRect();
@@ -99,11 +102,11 @@ async function snapshot(stage: HTMLElement, scene: Scene, caption: string) {
     if (!r.width || !r.height) continue;
     const x = (r.left - sr.left) * k, y = (r.top - sr.top) * k, w = r.width * k, h = r.height * k;
     if (n instanceof HTMLImageElement) {
-      await n.decode().catch(() => undefined);
-      ctx.drawImage(n, x, y, w, h);
+      if (!(n.complete && n.naturalWidth)) await within(n.decode().catch(() => undefined), 1500);
+      if (n.complete && n.naturalWidth) ctx.drawImage(n, x, y, w, h);
     } else if (n instanceof SVGSVGElement) {
       const pad = 0.25;
-      const img = await svgToImage(n, w, h, pad).catch(() => null);
+      const img = await within(svgToImage(n, w, h, pad).catch(() => null), 1500);
       if (img) ctx.drawImage(img, x - w * pad, y - h * pad, w * (1 + 2 * pad), h * (1 + 2 * pad));
     }
   }
@@ -142,8 +145,9 @@ export function PhotoTab({ level, onLine }: { level: number; onLine: (s: string)
       sfx("success");
     } catch {
       onLine("Uy, la foto no salió. ¿Probamos otra vez?");
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   const current = photos?.find((p) => p.id === view) ?? null;

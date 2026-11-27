@@ -89,7 +89,7 @@ function Inner() {
   }
 
   async function surprise() {
-    const mine = WEAR_ITEMS.filter((i) => owns(i, game.ownedIds));
+    const mine = WEAR_ITEMS.filter((i) => owns(i, game.ownedIds) && (!i.mochito || isDog));
     if (mine.length === 0) return setMessage("Compra algo primero para poder combinarlo.");
     const next: Outfit = {};
     for (const s of WEAR_SLOTS) {
@@ -122,7 +122,7 @@ function Inner() {
     setMessage(`Look del día: ${pool[n].name}.`);
   }
 
-  const items = WEAR_ITEMS.filter((i) => i.slot === slot);
+  const items = WEAR_ITEMS.filter((i) => i.slot === slot && (!i.mochito || isDog));
   const worn = outfit[slot];
   const wornItem = worn ? wearById(idOf(worn)) : undefined;
 
@@ -215,7 +215,7 @@ function Inner() {
                         {on ? "Quitar" : "Poner"}
                       </Button>
                     ) : item.event ? (
-                      <p className="rounded-2xl bg-secondary px-2 py-3 text-center text-xs font-semibold">Evento: {item.event}</p>
+                      <p className="rounded-2xl bg-secondary px-2 py-3 text-center text-xs font-semibold">{item.mochito ? `Se gana: ${item.event.replace("Solo Mochito · ", "")}` : `Evento: ${item.event}`}</p>
                     ) : (
                       <Button disabled={missing > 0} className="h-11 w-full rounded-2xl px-2" onClick={() => void wear(item)}>
                         <Coins aria-hidden /> {item.price}

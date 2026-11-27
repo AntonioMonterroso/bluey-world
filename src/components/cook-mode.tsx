@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, Check, ChefHat, ChevronLeft, ChevronRight, Clock, Minus, Plus, Star, Timer as TimerIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Character, DancingCharacter } from "@/components/character";
+import { MochitoCookBuddy } from "@/components/mochito-cook-buddy";
 import { TimerCard } from "@/components/timer-card";
 import { labelClass, textareaClass } from "@/components/ui/fields";
 import { useProfile } from "@/lib/db/profile";
@@ -134,6 +135,7 @@ function CookMode({ recipe }: { recipe: Recipe }) {
       <div className="flex max-w-xl flex-col items-center gap-5 py-6 text-center">
         <DancingCharacter id={profile.character} className="h-56" />
         <h1 className="text-4xl">¡Receta cocinada!</h1>
+        <MochitoCookBuddy phase="done" recipe={recipe.title} className="w-full max-w-sm text-left" />
         <p className="text-muted-foreground">Quedó anotada en tu diario: {recipe.title}.</p>
         <div className="flex flex-wrap justify-center gap-3">
           <Button asChild size="lg" className="h-12 rounded-2xl px-6 text-base"><Link href={`/recetas/ver?id=${recipe.id}`}>Ver la receta</Link></Button>
@@ -149,6 +151,7 @@ function CookMode({ recipe }: { recipe: Recipe }) {
         <p className="truncate font-heading text-lg">{recipe.title}</p>
         {exit}
       </div>
+      {(phase === "ing" || phase === "finish") && <MochitoCookBuddy phase={phase} recipe={recipe.title} />}
 
       {!!timers?.length && (
         <section aria-label="Temporizadores en marcha" className="flex flex-col gap-2">
@@ -197,6 +200,7 @@ function CookMode({ recipe }: { recipe: Recipe }) {
 
       {phase === "steps" && current && (
         <section aria-labelledby="cs" className="flex flex-col gap-5">
+          <MochitoCookBuddy phase="steps" step={step} total={steps.length} text={current.text} recipe={recipe.title} />
           <div>
             <h1 id="cs" className="text-lg font-semibold text-muted-foreground">Paso {step + 1} de {steps.length}</h1>
             <div className="mt-2 h-2 overflow-hidden rounded-full bg-secondary" role="progressbar" aria-valuemin={1} aria-valuemax={steps.length} aria-valuenow={step + 1}>

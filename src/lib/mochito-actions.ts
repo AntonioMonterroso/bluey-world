@@ -5,10 +5,10 @@ import { DEFAULT_PROFILE, PROFILE_ID, updateProfile } from "@/lib/db/profile";
 import { upsertRow } from "@/lib/db/repo";
 import { dayKey } from "@/lib/game/engine";
 import { writeAwards } from "@/lib/game/use-game";
-import { WEAR_ITEMS } from "@/lib/game/wardrobe";
+import { MOCHITO_WEAR, WEAR_ITEMS, mochitoWearUnlocked } from "@/lib/game/wardrobe";
 import { PET_ITEMS } from "@/lib/game/shop";
 import { BIRTHDAY_GIFT, appendLog, giftFor, giftOpened, logLine, mochitoBirthday, nextStreak, type LogEvent } from "@/lib/mochito-life";
-import { EMPTY_STATS, FRIENDS, FRIEND_AT, TRICKS, applyCare, earnedMedals, friendsOf, medalEventId, mochitoLevel, walkFind, walkMeet, type CareKind, type Friend, type WalkFind } from "@/lib/mochito-play";
+import { MISSIONS_REWARD, EMPTY_STATS, FRIENDS, FRIEND_AT, TRICKS, applyCare, earnedMedals, friendsOf, medalEventId, mochitoLevel, walkFind, walkMeet, type CareKind, type Friend, type WalkFind } from "@/lib/mochito-play";
 
 const thingsOf = (home: { bed?: string; bowl?: string; toy?: string } | undefined) => [home?.bed, home?.bowl, home?.toy].filter(Boolean).length;
 
@@ -33,6 +33,20 @@ async function payMedals() {
   const now = Date.now();
   await writeAwards(medals.map((m) => ({ id: medalEventId(m.id), kind: "mochito", label: `Medalla de Mochito: ${m.name}`, xp: 0, coins: m.coins, at: now })), existing);
   return medals.filter((m) => !had.has(medalEventId(m.id))).map((m) => m.name);
+}
+
+/** Le da la ropa exclusiva que ya ganó (por nivel o medallas). Devuelve los nombres de lo nuevo. */
+export async function unlockMochitoWear() {
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  const stats = { ...EMPTY_STATS, ...p.mochito_stats };
+  const level = mochitoLevel(stats.xp).level;
+  const medals = new Set(earnedMedals({ stats, tricks: p.mochito_tricks ?? [], level, things: thingsOf(p.mochito_home), friends: friendsOf(p.mochito_friends).length }).map((m) => m.id));
+  const owned = new Set((await db.owned_items.toArray()).filter((o) => !o.deleted_at).map((o) => o.id));
+  const fresh = MOCHITO_WEAR.filter((w) => !owned.has(w.id) && mochitoWearUnlocked(w, level, medals));
+  const now = Date.now();
+  for (const w of fresh) await upsertRow<OwnedItem>("owned_items", { id: w.id, bought_at: now });
+  if (fresh.length) await mochitoLog(...fresh.map((w): LogEvent => ({ kind: "thing", name: `ropa nueva: ${w.name}` })));
+  return fresh.map((w) => w.name);
 }
 
 /** Lo que haces con Mochito: suma a su nivel, a sus barras y revisa si ganó una medalla. Devuelve el nivel antes y después. */
@@ -61,7 +75,8 @@ export async function mochitoDo(kind: CareKind, extra: { trick?: string; friend?
   const medals = await payMedals();
   const after = mochitoLevel(stats.xp).level;
   await mochitoLog(...medals.map((name): LogEvent => ({ kind: "medal", name })), ...(after > before ? [{ kind: "level", level: after } as LogEvent] : []));
-  return { before, after, medals };
+  const wear = await unlockMochitoWear();
+  return { before, after, medals, wear };
 }
 
 /** El paseo del día: una vez al día, encuentra algo, a veces un amiguito, y regresa con lodo. */
@@ -130,3 +145,18 @@ export async function claimBirthday() {
 
 /** Marca que ya te dio los buenos días hoy. */
 export const markGreeted = () => updateProfile({ mochito_greet: dayKey(Date.now()) });
+
+export const missionsEventId = (now: number) => `mochito-misiones:${dayKey(now)}`;
+
+/** Cobra el premio de las misiones del día (una vez al día). */
+export async function claimMissions() {
+  const now = Date.now();
+  const id = missionsEventId(now);
+  if (await db.game_events.get(id)) return false;
+  await writeAwards([{ id, kind: "mochito", label: "Misiones del día con Mochito", xp: MISSIONS_REWARD.xp, coins: MISSIONS_REWARD.coins, at: now }], await db.game_events.toArray());
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  const stats = { ...EMPTY_STATS, ...p.mochito_stats };
+  await updateProfile({ mochito_stats: { ...stats, xp: stats.xp + MISSIONS_REWARD.dogXp }, mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "missions" })) });
+  await unlockMochitoWear();
+  return true;
+}

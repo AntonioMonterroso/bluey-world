@@ -15,6 +15,8 @@ export interface MochitoStats {
   walk_day?: string; // último día que salió de paseo
   xp_day?: string;
   xp_today?: number;
+  count_day?: string; // día de las cuentas de hoy
+  count?: Partial<Record<CareKind, number>>; // lo que hicieron hoy (para las misiones)
 }
 
 export type CareKind = "pet" | "treat" | "game" | "walk" | "trick" | "bath" | "photo";
@@ -31,6 +33,9 @@ export function applyCare(stats: MochitoStats | undefined, kind: CareKind, now: 
   const s: MochitoStats = { ...EMPTY_STATS, ...stats, days: [...(stats?.days ?? [])] };
   const day = dayKey(now);
   if (!s.days.includes(day)) s.days = [...s.days, day].slice(-400);
+  s.count = s.count_day === day ? { ...s.count } : {};
+  s.count_day = day;
+  s.count[kind] = (s.count[kind] ?? 0) + 1;
   if (kind === "pet") s.pets++;
   if (kind === "treat") s.treats++;
   if (kind === "game") s.games++;
@@ -285,4 +290,40 @@ export const collides = (x: number, h: number, jump: number) => Math.abs(x - RUN
 export function runScore(cleared: number, hits: number) {
   const total = cleared + hits;
   return total ? Math.max(0, Math.min(1, cleared / total - hits * 0.03)) : 0;
+}
+
+// ── Misiones del día ────────────────────────────────────────────────
+
+export interface Mission { id: string; text: string; need: number; care?: CareKind; did?: "cooked" | "wrote" | "spent" | "gift" }
+
+export const MISSIONS_CARE: Mission[] = [
+  { id: "carinos", text: "Dale 3 cariños a Mochito", need: 3, care: "pet" },
+  { id: "galletas", text: "Dale una galleta", need: 1, care: "treat" },
+  { id: "bano", text: "Báñalo", need: 1, care: "bath" },
+  { id: "juegos", text: "Juega 2 partidas con él", need: 2, care: "game" },
+  { id: "paseo", text: "Sácalo a pasear", need: 1, care: "walk" },
+  { id: "foto", text: "Tómale una foto", need: 1, care: "photo" },
+];
+export const MISSIONS_LIFE: Mission[] = [
+  { id: "cocinar", text: "Cocina una receta de verdad", need: 1, did: "cooked" },
+  { id: "diario", text: "Escribe en tu diario", need: 1, did: "wrote" },
+  { id: "anotar", text: "Anota un gasto o ingreso", need: 1, did: "spent" },
+  { id: "regalo", text: "Abre su regalo del día", need: 1, did: "gift" },
+];
+export const MISSIONS_REWARD = { coins: 15, xp: 10, dogXp: 10 };
+
+/** Las 3 misiones de hoy: dos con Mochito y una de tu día. Salen de la fecha. */
+export function missionsFor(now: number): Mission[] {
+  const rnd = rng(`misiones:${dayKey(now)}`);
+  const care = [...MISSIONS_CARE];
+  const a = care.splice(Math.floor(rnd() * care.length), 1)[0];
+  const b = care.splice(Math.floor(rnd() * care.length), 1)[0];
+  const c = MISSIONS_LIFE[Math.floor(rnd() * MISSIONS_LIFE.length)];
+  return [a, b, c];
+}
+
+/** Cuánto lleva de cada misión hoy. `did` son las cosas de tu día que ya hiciste. */
+export function missionProgress(m: Mission, stats: MochitoStats | undefined, now: number, did: Set<string>) {
+  const have = m.care ? (stats?.count_day === dayKey(now) ? (stats.count?.[m.care] ?? 0) : 0) : did.has(m.did!) ? 1 : 0;
+  return { have: Math.min(have, m.need), done: have >= m.need };
 }

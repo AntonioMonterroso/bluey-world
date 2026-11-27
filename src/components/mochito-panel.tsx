@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { Award, BookHeart, Cake, Gift, Moon, Bath, Bell, Bone, Camera, Coins, Cookie, Dog, Droplets, Flower2, Footprints, Gamepad2, Hand, Heart, Home, Lock, Shirt, Sparkles, TreePine, Users, Wand2 } from "lucide-react";
+import { Award, Check, Target, BookHeart, Cake, Gift, Moon, Bath, Bell, Bone, Camera, Coins, Cookie, Dog, Droplets, Flower2, Footprints, Gamepad2, Hand, Heart, Home, Lock, Shirt, Sparkles, TreePine, Users, Wand2 } from "lucide-react";
 import { DressedImage } from "@/components/dressed-image";
 import { MochitoFigure } from "@/components/mochito-figure";
 import { goTo, type MochitoGoto } from "@/lib/mochito-goto";
@@ -15,10 +15,10 @@ import { buyItem, useGame } from "@/lib/game/use-game";
 import { MOOD_LABEL, actionLine, mochitoSays, mochitoState, type MochitoNews } from "@/lib/mochito";
 import { LEVEL_UP, MEDAL_WON, THING_NEW, TRICK_DONE, WALK_GO } from "@/lib/mochito-lines";
 import { useMochitoDid } from "@/components/mochito";
-import { claimBirthday, markGreeted, mochitoDo, mochitoWalk, openDailyGift, setMochitoThing } from "@/lib/mochito-actions";
+import { claimBirthday, claimMissions, missionsEventId, markGreeted, mochitoDo, mochitoWalk, openDailyGift, setMochitoThing } from "@/lib/mochito-actions";
 import { BIRTHDAY_GIFT, MOCHITO_BDAY_LINES, festiveOf, giftFor, giftOpened, isMorning, isNight, logDayTitle, mochitoBirthday, morningLine, nextStreak, sleepyLine } from "@/lib/mochito-life";
 import { dayKey } from "@/lib/game/engine";
-import { EMPTY_STATS, FRIEND_AT, MEDALS, SCRUB_STEPS, TEACH_TRIES, TRICKS, earnedMedals, friendsOf, mochitoLevel, trickReady, walkedToday, type Friend, type WalkFind } from "@/lib/mochito-play";
+import { MISSIONS_REWARD, missionProgress, missionsFor, type Mission, EMPTY_STATS, FRIEND_AT, MEDALS, SCRUB_STEPS, TEACH_TRIES, TRICKS, earnedMedals, friendsOf, mochitoLevel, trickReady, walkedToday, type Friend, type WalkFind } from "@/lib/mochito-play";
 import { FriendsTab } from "@/components/mochito-friends";
 import { PhotoTab } from "@/components/mochito-photos";
 import { TRICK_MOVES } from "@/lib/mochito-moves";
@@ -47,6 +47,8 @@ const GAMES: { goto: MochitoGoto; name: string; icon: typeof Bone }[] = [
   { goto: "juego:carrera", name: "Carrera", icon: Footprints },
   { goto: "juego:cocinam", name: "Cocinar", icon: Cookie },
   { goto: "juego:memoriam", name: "Memoria", icon: Sparkles },
+  { goto: "juego:hueso", name: "Hueso", icon: Bone },
+  { goto: "juego:ritmo", name: "Ritmo", icon: Footprints },
 ];
 
 function Bar({ label, value, icon: Icon }: { label: string; value: number; icon: typeof Heart }) {
@@ -109,6 +111,7 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
     const r = await mochitoDo(kind, extra);
     if (r.after > r.before) { sfx("success"); setLine(`${pickOf(LEVEL_UP)} Ya soy nivel ${r.after}.${TRICKS.some((t) => t.level === r.after) ? " ¡Y puedo aprender un truco nuevo!" : ""}`); }
     else if (r.medals.length) { sfx("success"); setLine(`${pickOf(MEDAL_WON)} Es «${r.medals[0]}».`); }
+    if (r.wear.length) { sfx("success"); setLine((l) => `${l ?? ""} ¡Y gané ropa nueva: ${r.wear.join(", ")}! Está en el vestuario.`.trim()); }
   }
   function pet() {
     setHearts((n) => n + 1);
@@ -236,6 +239,7 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
               <WalkScene reduce={!!reduce} find={walk.phase === "done" ? walk.find : undefined} outfit={profile.mochito_outfit} onArrive={arrive} onClose={() => setWalk(null)} />
             ) : (
               <>
+                <MissionsCard missions={missionsFor(now)} stats={profile.mochito_stats} now={now} did={new Set([...(did ?? []), ...(did?.includes("earned") ? ["spent"] : []), ...(giftOpened(profile.mochito_gift, now) ? ["gift"] : [])])} claimed={g.events.some((e) => e.id === missionsEventId(now))} onClaim={() => void claimMissions().then((ok) => { if (ok) { sfx("cash"); setLine(`¡Cumplimos las misiones! Te ganaste ${MISSIONS_REWARD.coins} monedas y yo subí un poquito.`); } })} />
                 <GiftCard opened={giftOpened(profile.mochito_gift, now) && !gifting} gifting={gifting} streakNext={nextStreak(profile.mochito_gift, now)} streakNow={profile.mochito_gift?.streak ?? 0} onOpen={() => void gift()} reduce={!!reduce} />
                 <div className="grid grid-cols-2 gap-3 rounded-3xl bg-secondary/60 p-3 sm:grid-cols-4">
                   <Bar label="Barriga" value={state.belly} icon={Bone} />
@@ -589,5 +593,37 @@ function DiaryTab({ log, now, since }: { log?: { d: string; e: string[] }[]; now
         </ol>
       )}
     </div>
+  );
+}
+
+/** Las tres misiones del día y su premio. */
+function MissionsCard({ missions, stats, now, did, claimed, onClaim }: { missions: Mission[]; stats?: Parameters<typeof missionProgress>[1]; now: number; did: Set<string>; claimed: boolean; onClaim: () => void }) {
+  const rows = missions.map((m) => ({ m, ...missionProgress(m, stats, now, did) }));
+  const all = rows.every((r) => r.done);
+  return (
+    <section aria-labelledby="misiones" className="flex flex-col gap-2 rounded-3xl border-2 border-border bg-card p-3">
+      <div className="flex items-center justify-between gap-2">
+        <h3 id="misiones" className="flex items-center gap-1.5 text-sm font-semibold"><Target className="size-4 text-primary" aria-hidden /> Misiones de hoy</h3>
+        <span className="text-xs font-semibold text-muted-foreground">{rows.filter((r) => r.done).length} de 3</span>
+      </div>
+      <ul className="flex flex-col gap-1.5">
+        {rows.map(({ m, have, done }) => (
+          <li key={m.id} className={cn("flex items-center gap-2 text-sm", done && "text-muted-foreground line-through")}>
+            <span className={cn("flex size-5 shrink-0 items-center justify-center rounded-full border-2", done ? "border-primary bg-primary text-primary-foreground" : "border-border")}>{done && <Check className="size-3" aria-hidden />}</span>
+            <span className="min-w-0 flex-1">{m.text}</span>
+            {m.need > 1 && !done && <span className="text-xs tabular-nums text-muted-foreground">{have}/{m.need}</span>}
+          </li>
+        ))}
+      </ul>
+      {claimed ? (
+        <p className="text-xs font-semibold text-primary">¡Misiones cumplidas! Mañana hay nuevas.</p>
+      ) : all ? (
+        <button type="button" onClick={onClaim} className="flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground active:scale-[0.97]">
+          <Coins className="size-4" aria-hidden /> Cobrar premio: {MISSIONS_REWARD.coins} monedas
+        </button>
+      ) : (
+        <p className="text-xs text-muted-foreground">Cúmplelas todas y ganas {MISSIONS_REWARD.coins} monedas, y Mochito sube un poquito.</p>
+      )}
+    </section>
   );
 }

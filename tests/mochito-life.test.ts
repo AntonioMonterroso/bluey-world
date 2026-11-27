@@ -92,3 +92,67 @@ describe("Cocina y Memoria de Mochito", () => {
     expect(memoScore(6, 18)).toBe(0);
   });
 });
+
+describe("Misiones, ropa exclusiva, cocina y juegos nuevos", () => {
+  it("las misiones del día son 3, fijas en el día, y cuentan lo de hoy", async () => {
+    const { applyCare, missionProgress, missionsFor, MISSIONS_CARE, MISSIONS_LIFE } = await import("@/lib/mochito-play");
+    const now = at(2026, 11, 26);
+    const ms = missionsFor(now);
+    expect(ms).toHaveLength(3);
+    expect(missionsFor(now + 3_600_000)).toEqual(ms);
+    expect(MISSIONS_CARE).toEqual(expect.arrayContaining([ms[0], ms[1]]));
+    expect(MISSIONS_LIFE).toContainEqual(ms[2]);
+    let s = applyCare(undefined, "pet", now);
+    s = applyCare(s, "pet", now + 1);
+    const pets = MISSIONS_CARE.find((m) => m.id === "carinos")!;
+    expect(missionProgress(pets, s, now, new Set())).toEqual({ have: 2, done: false });
+    s = applyCare(s, "pet", now + 2);
+    expect(missionProgress(pets, s, now, new Set()).done).toBe(true);
+    expect(missionProgress(pets, s, now + 86_400_000, new Set()).have).toBe(0);
+    const cook = MISSIONS_LIFE.find((m) => m.id === "cocinar")!;
+    expect(missionProgress(cook, s, now, new Set(["cooked"])).done).toBe(true);
+  });
+
+  it("la ropa exclusiva se gana por nivel o medalla y no la ven los demás", async () => {
+    const { MOCHITO_WEAR, WEAR_ITEMS, mochitoWearUnlocked } = await import("@/lib/game/wardrobe");
+    const { ART } = await import("@/components/wardrobe-art");
+    expect(MOCHITO_WEAR.every((w) => WEAR_ITEMS.includes(w) && ART[w.id])).toBe(true);
+    const collar = MOCHITO_WEAR.find((w) => w.id === "wear:m-huesito")!;
+    expect(mochitoWearUnlocked(collar, 1, new Set())).toBe(false);
+    expect(mochitoWearUnlocked(collar, 2, new Set())).toBe(true);
+    const botitas = MOCHITO_WEAR.find((w) => w.id === "wear:m-botitas")!;
+    expect(mochitoWearUnlocked(botitas, 15, new Set())).toBe(false);
+    expect(mochitoWearUnlocked(botitas, 1, new Set(["paseo-10"]))).toBe(true);
+  });
+
+  it("en la cocina da consejos según el paso", async () => {
+    const { cookBuddyLine } = await import("@/lib/mochito-life");
+    expect(cookBuddyLine("Precalienta el horno a 180°", 0, 5)).toMatch(/horno/i);
+    expect(cookBuddyLine("Bate la mantequilla", 1, 5)).toMatch(/[Bb]ate|Mezcla/);
+    expect(cookBuddyLine("Agrega todo", 0, 5)).toMatch(/Empezamos/);
+    expect(cookBuddyLine("Sirve", 4, 5)).toMatch(/Último/);
+  });
+
+  it("busca el hueso: frío o caliente según la distancia", async () => {
+    const { boneDist, boneScore, heatOf } = await import("@/lib/mochito-life");
+    expect(heatOf(boneDist({ r: 2, c: 2 }, { r: 2, c: 2 }))).toBe("aqui");
+    expect(heatOf(boneDist({ r: 1, c: 1 }, { r: 2, c: 2 }))).toBe("ardiendo");
+    expect(heatOf(boneDist({ r: 0, c: 0 }, { r: 4, c: 4 }))).toBe("frio");
+    expect(heatOf(6)).toBe("congelado");
+    expect(boneScore(true, 1, 7)).toBe(1);
+    expect(boneScore(false, 3, 7)).toBe(0);
+    expect(boneScore(true, 7, 7)).toBe(0.4);
+  });
+
+  it("ritmo: califica qué tan a tiempo tocas", async () => {
+    const { judge, rhythmScore, rhythmSong, rhythmBeat } = await import("@/lib/mochito-life");
+    const song = rhythmSong(rng("r"), "normal");
+    expect(song.length).toBeGreaterThan(12);
+    expect(song[1] - song[0]).toBe(rhythmBeat("normal"));
+    expect(judge(50)).toBe("perfect");
+    expect(judge(-200)).toBe("good");
+    expect(judge(400)).toBe("miss");
+    expect(rhythmScore(10, 0, 10)).toBe(1);
+    expect(rhythmScore(0, 10, 10)).toBeCloseTo(0.6);
+  });
+});

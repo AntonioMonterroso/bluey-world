@@ -597,3 +597,101 @@ ART["wear:atardecer"] = {
     </g>
   ),
 };
+
+// ---------- Solo Mochito ----------
+ART["wear:m-huesito"] = {
+  layer: "front",
+  render: ({ tx, tt, tw, h, u }) => (
+    <g>
+      <path d={`M${tx - 0.34 * tw} ${tt + 0.02 * h} Q${tx} ${tt + 0.2 * h} ${tx + 0.34 * tw} ${tt + 0.02 * h}`} stroke="#3a7bd5" strokeWidth={0.06 * u} fill="none" strokeLinecap="round" />
+      <g transform={`translate(${tx} ${tt + 0.16 * h})`} fill="#fffaf0" stroke={LINE} strokeWidth={0.25}>
+        <rect x={-0.09 * u} y={-0.025 * u} width={0.18 * u} height={0.05 * u} rx={0.02 * u} />
+        <circle cx={-0.1 * u} cy={-0.03 * u} r={0.035 * u} /><circle cx={-0.1 * u} cy={0.03 * u} r={0.035 * u} />
+        <circle cx={0.1 * u} cy={-0.03 * u} r={0.035 * u} /><circle cx={0.1 * u} cy={0.03 * u} r={0.035 * u} />
+      </g>
+    </g>
+  ),
+};
+ART["wear:m-panoleta"] = {
+  layer: "front",
+  render: ({ tx, tt, tw, h }) => (
+    <g>
+      <path d={`M${tx - 0.42 * tw} ${tt} Q${tx} ${tt + 0.08 * h} ${tx + 0.42 * tw} ${tt} L${tx} ${tt + 0.3 * h} Z`} fill="#d63a3a" stroke={LINE} strokeWidth={0.35} />
+      {[-0.18, 0, 0.18].map((d) => <circle key={d} cx={tx + d * tw} cy={tt + 0.08 * h + Math.abs(d) * -0.05 * h} r={0.012 * tw * 3} fill="#fff" opacity={0.85} />)}
+      <circle cx={tx} cy={tt + 0.18 * h} r={0.035 * tw} fill="#fff" opacity={0.85} />
+    </g>
+  ),
+};
+ART["wear:m-gala"] = {
+  layer: "front",
+  render: ({ tx, tt, h, u }) => {
+    const y = tt + 0.05 * h;
+    return (
+      <g>
+        <polygon points={`${tx},${y} ${tx - 0.24 * u},${y - 0.12 * u} ${tx - 0.24 * u},${y + 0.12 * u}`} fill="#1f1f2b" stroke={LINE} strokeWidth={0.3} />
+        <polygon points={`${tx},${y} ${tx + 0.24 * u},${y - 0.12 * u} ${tx + 0.24 * u},${y + 0.12 * u}`} fill="#1f1f2b" stroke={LINE} strokeWidth={0.3} />
+        <circle cx={tx} cy={y} r={0.06 * u} fill="#d4af37" stroke={LINE} strokeWidth={0.3} />
+      </g>
+    );
+  },
+};
+ART["wear:m-chef"] = {
+  layer: "front",
+  render: ({ cx, top, u }) => (
+    <g stroke={LINE} strokeWidth={0.3} fill="#ffffff">
+      <rect x={cx - 0.2 * u} y={top - 0.12 * u} width={0.4 * u} height={0.16 * u} rx={0.03 * u} />
+      <circle cx={cx - 0.14 * u} cy={top - 0.2 * u} r={0.12 * u} />
+      <circle cx={cx + 0.14 * u} cy={top - 0.2 * u} r={0.12 * u} />
+      <circle cx={cx} cy={top - 0.28 * u} r={0.14 * u} />
+      <g transform={`translate(${cx} ${top - 0.04 * u})`} fill="#c58a4b" stroke="none">
+        <rect x={-0.06 * u} y={-0.014 * u} width={0.12 * u} height={0.028 * u} rx={0.01 * u} />
+        <circle cx={-0.065 * u} cy={-0.018 * u} r={0.02 * u} /><circle cx={-0.065 * u} cy={0.018 * u} r={0.02 * u} />
+        <circle cx={0.065 * u} cy={-0.018 * u} r={0.02 * u} /><circle cx={0.065 * u} cy={0.018 * u} r={0.02 * u} />
+      </g>
+    </g>
+  ),
+};
+ART["wear:m-botitas"] = {
+  layer: "front",
+  render: ({ fl, fr, fy, u }) => (
+    <g stroke={LINE} strokeWidth={0.3}>
+      {[fl, fr].map((x, i) => (
+        <g key={i}>
+          <rect x={x - 0.09 * u} y={fy - 0.2 * u} width={0.18 * u} height={0.2 * u} rx={0.04 * u} fill="#f5c518" />
+          <ellipse cx={x + (i ? 0.04 : -0.04) * u} cy={fy + 0.005 * u} rx={0.13 * u} ry={0.055 * u} fill="#f5c518" />
+          <rect x={x - 0.09 * u} y={fy - 0.2 * u} width={0.18 * u} height={0.04 * u} fill="#e0a800" stroke="none" />
+        </g>
+      ))}
+    </g>
+  ),
+};
+ART["wear:m-capa"] = {
+  layer: "back",
+  render: ({ tx, tt, tb, tw, h }) => (
+    <g>
+      <path d={`M${tx - 0.36 * tw} ${tt} L${tx + 0.36 * tw} ${tt} L${tx + 0.8 * tw} ${tb + 0.12 * h} Q${tx} ${tb + 0.02 * h} ${tx - 0.8 * tw} ${tb + 0.12 * h} Z`} fill="#c62828" stroke={LINE} strokeWidth={0.4} />
+      <circle cx={tx - 0.5 * tw} cy={tt + 0.55 * h} r={0.16 * tw} fill="#f6c744" stroke={LINE} strokeWidth={0.3} />
+      <text x={tx - 0.5 * tw} y={tt + 0.55 * h + 0.06 * tw} textAnchor="middle" fontSize={0.2 * tw} fontWeight="700" fill="#c62828">M</text>
+    </g>
+  ),
+};
+ART["wear:m-aviador"] = {
+  layer: "front",
+  render: ({ cx, ey, u }) => (
+    <g stroke="#7a5a1e" strokeWidth={0.45}>
+      <path d={`M${cx - 0.36 * u} ${ey - 0.06 * u} Q${cx - 0.2 * u} ${ey - 0.1 * u} ${cx - 0.05 * u} ${ey - 0.05 * u} Q${cx - 0.08 * u} ${ey + 0.14 * u} ${cx - 0.22 * u} ${ey + 0.12 * u} Q${cx - 0.36 * u} ${ey + 0.08 * u} ${cx - 0.36 * u} ${ey - 0.06 * u} Z`} fill="#2e5e4e" fillOpacity={0.78} />
+      <path d={`M${cx + 0.36 * u} ${ey - 0.06 * u} Q${cx + 0.2 * u} ${ey - 0.1 * u} ${cx + 0.05 * u} ${ey - 0.05 * u} Q${cx + 0.08 * u} ${ey + 0.14 * u} ${cx + 0.22 * u} ${ey + 0.12 * u} Q${cx + 0.36 * u} ${ey + 0.08 * u} ${cx + 0.36 * u} ${ey - 0.06 * u} Z`} fill="#2e5e4e" fillOpacity={0.78} />
+      <path d={`M${cx - 0.05 * u} ${ey - 0.05 * u} Q${cx} ${ey - 0.09 * u} ${cx + 0.05 * u} ${ey - 0.05 * u}`} fill="none" />
+    </g>
+  ),
+};
+ART["wear:m-rescate"] = {
+  layer: "front",
+  render: ({ tx, tt, tb, tw, h }) => (
+    <g>
+      <path d={`M${tx - 0.46 * tw} ${tt + 0.1 * h} L${tx + 0.46 * tw} ${tt + 0.1 * h} L${tx + 0.42 * tw} ${tb - 0.12 * h} L${tx - 0.42 * tw} ${tb - 0.12 * h} Z`} fill="#ff7a1a" stroke={LINE} strokeWidth={0.35} />
+      <rect x={tx - 0.44 * tw} y={tt + 0.38 * h} width={0.88 * tw} height={0.07 * h} fill="#e8f0f2" opacity={0.9} />
+      <path d={`M${tx} ${tt + 0.16 * h} v${0.14 * h} M${tx - 0.07 * h} ${tt + 0.23 * h} h${0.14 * h}`} stroke="#ffffff" strokeWidth={0.05 * h} strokeLinecap="round" />
+    </g>
+  ),
+};

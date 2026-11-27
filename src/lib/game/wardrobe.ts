@@ -5,6 +5,7 @@ export type WearSlot = "back" | "head" | "face" | "neck" | "body" | "hand" | "fe
 export interface WearItem extends ShopItem {
   kind: "wear";
   slot: WearSlot;
+  mochito?: { level?: number; medal?: string }; // ropa exclusiva de Mochito: cómo se gana
 }
 
 const ev = (slot: WearSlot, key: string, name: string, event: string): WearItem => ({ id: `wear:${key}`, kind: "wear", slot, name, price: 9999, event });
@@ -83,5 +84,25 @@ export const WEAR_ITEMS: WearItem[] = [
   w("back", "corazones", "Corazones", 45),
   w("back", "arcoiris", "Arcoíris", 60),
 ];
+
+const m = (slot: WearSlot, key: string, name: string, unlock: { level?: number; medal?: string }, how: string): WearItem =>
+  ({ id: `wear:m-${key}`, kind: "wear", slot, name, price: 9999, event: `Solo Mochito · ${how}`, mochito: unlock });
+
+/** Ropa que solo usa Mochito. Se gana subiendo de nivel o con sus medallas. */
+export const MOCHITO_WEAR: WearItem[] = [
+  m("neck", "huesito", "Collar con huesito", { level: 2 }, "nivel 2"),
+  m("neck", "panoleta", "Pañoleta roja", { level: 4 }, "nivel 4"),
+  m("neck", "gala", "Corbatín de gala", { medal: "truco-1" }, "medalla Primer truco"),
+  m("head", "chef", "Gorrito de chef perruno", { medal: "galleta-25" }, "medalla Panza contenta"),
+  m("feet", "botitas", "Botitas de lluvia", { medal: "paseo-10" }, "medalla Explorador"),
+  m("back", "capa", "Capa de superhéroe", { level: 8 }, "nivel 8"),
+  m("face", "aviador", "Lentes de aviador", { level: 12 }, "nivel 12"),
+  m("body", "rescate", "Chaleco de rescatista", { medal: "amigos-todos" }, "medalla Amigo de todos"),
+];
+WEAR_ITEMS.push(...MOCHITO_WEAR);
+
+/** ¿Ya ganó esta prenda? */
+export const mochitoWearUnlocked = (item: WearItem, level: number, medals: Set<string>) =>
+  !!item.mochito && (item.mochito.level ? level >= item.mochito.level : true) && (item.mochito.medal ? medals.has(item.mochito.medal) : true);
 
 export const wearById = (id: string) => WEAR_ITEMS.find((i) => i.id === id);

@@ -79,7 +79,7 @@ export type LogEvent =
   | { kind: "pet" } | { kind: "treat" } | { kind: "bath" } | { kind: "photo" } | { kind: "gift"; coins: number }
   | { kind: "walk"; friend?: string; newFriend?: boolean } | { kind: "game"; game?: string }
   | { kind: "trick"; name: string } | { kind: "medal"; name: string } | { kind: "level"; level: number }
-  | { kind: "thing"; name: string } | { kind: "birthday"; age: number };
+  | { kind: "thing"; name: string } | { kind: "birthday"; age: number } | { kind: "missions" } | { kind: "cooked"; recipe: string };
 
 /** Cómo lo cuenta Mochito en su diario (en primera persona). */
 export function logLine(ev: LogEvent): string {
@@ -95,6 +95,8 @@ export function logLine(ev: LogEvent): string {
     case "medal": return `Gané la medalla «${ev.name}».`;
     case "level": return `¡Subí al nivel ${ev.level}!`;
     case "thing": return `Estrené ${ev.name.toLowerCase()}.`;
+    case "cooked": return `Te acompañé a cocinar ${ev.recipe}. Olía delicioso.`;
+    case "missions": return "¡Cumplimos las tres misiones del día!";
     case "birthday": return `¡Cumplí ${ev.age} ${ev.age === 1 ? "año" : "años"}! Hubo pastel y regalo.`;
   }
 }
@@ -216,3 +218,77 @@ export function memoDeck(rnd: () => number, pairs: number, friendIds: string[]):
 }
 /** Puntaje: menos intentos de más, mejor. */
 export const memoScore = (pairs: number, tries: number) => Math.max(0, Math.min(1, 1 - Math.max(0, tries - pairs) / (pairs * 2)));
+
+// ── Te acompaña a cocinar ───────────────────────────────────────────
+
+const STEP_HINTS: [RegExp, string[]][] = [
+  [/horn|precalient/i, ["Cuidado con el horno caliente. Usa guantes, ¿sí?", "¡Al horno! Yo vigilo desde aquí."]],
+  [/bat[ei]|mezcl|incorpor/i, ["¡Bate, bate! Que quede suavecito.", "Mezcla con calma, sin prisa."]],
+  [/refriger|enfri|repos/i, ["Ahora toca esperar. La paciencia también cocina.", "Mientras reposa, ¿un vasito de agua?"]],
+  [/derrit|fuego|hierv|sart|olla/i, ["Fuego bajito, que no se queme.", "Ojo con el fuego. Yo me quedo lejos."]],
+  [/decor|crema|glase|betún|betun/i, ["¡La parte bonita! Decóralo con cariño.", "Eso va a quedar precioso."]],
+  [/cort|pic|ralla/i, ["Cuidado con los dedos al cortar.", "Despacito con el cuchillo."]],
+  [/huevo/i, ["Los huevos de uno en uno, para que no se corte.", "Si cae cascarita, sácala con otra cáscara."]],
+  [/harin|tamiz|cern/i, ["La harina cernida queda más esponjosa.", "¡Achís! La harina me hace estornudar."]],
+];
+
+/** Lo que te dice Mochito en cada paso de la receta. */
+export function cookBuddyLine(text: string, step: number, total: number) {
+  const hint = STEP_HINTS.find(([re]) => re.test(text));
+  if (hint) return hint[1][step % hint[1].length];
+  if (step === 0) return "¡Empezamos! Yo te acompaño paso a paso.";
+  if (step === total - 1) return "¡Último paso! Ya casi lo logramos.";
+  if (step >= Math.floor(total / 2)) return "Vamos a la mitad. ¡Lo estás haciendo muy bien!";
+  return ["Muy bien. Sigue así.", "Huele rico desde aquí.", "Tú puedes. Yo te echo porras."][step % 3];
+}
+
+export const COOK_DONE_LINES = [
+  "¡Lo lograste! Quedó precioso. ¿Me guardas una probadita?",
+  "¡Receta terminada! Eres la mejor cocinera del mundo.",
+  "¡Guau! Eso huele delicioso. Estoy muy orgulloso.",
+];
+
+// ── Busca el hueso ──────────────────────────────────────────────────
+
+export const BONE_ROUNDS = 3;
+export const boneSize = (l: "facil" | "normal" | "dificil") => (l === "facil" ? 4 : l === "dificil" ? 6 : 5);
+export const boneDigs = (l: "facil" | "normal" | "dificil") => (l === "facil" ? 8 : l === "dificil" ? 7 : 7);
+/** Dónde está el hueso en una cuadrícula de `size`×`size`. */
+export const boneAt = (rnd: () => number, size: number) => ({ r: Math.floor(rnd() * size), c: Math.floor(rnd() * size) });
+/** Distancia en pasos (diagonal cuenta como uno). */
+export const boneDist = (a: { r: number; c: number }, b: { r: number; c: number }) => Math.max(Math.abs(a.r - b.r), Math.abs(a.c - b.c));
+export type Heat = "aqui" | "ardiendo" | "caliente" | "tibio" | "frio" | "congelado";
+export function heatOf(dist: number): Heat {
+  return dist === 0 ? "aqui" : dist === 1 ? "ardiendo" : dist === 2 ? "caliente" : dist === 3 ? "tibio" : dist === 4 ? "frio" : "congelado";
+}
+export const HEAT_LABEL: Record<Heat, string> = { aqui: "¡Aquí está!", ardiendo: "¡Muy caliente!", caliente: "Caliente", tibio: "Tibio", frio: "Frío", congelado: "¡Congelado!" };
+export const HEAT_SAYS: Record<Heat, string> = {
+  aqui: "¡Lo encontraste! ¡Mi hueso!",
+  ardiendo: "¡Snif, snif! Está justo al ladito.",
+  caliente: "Huele fuerte por aquí. Ya casi.",
+  tibio: "Algo huele, pero todavía lejos.",
+  frio: "Mmm, por aquí no huele a hueso.",
+  congelado: "Brrr, ni rastro del hueso por acá.",
+};
+/** Puntaje de una ronda: encontrarlo vale 0.4 y con menos hoyos, más. */
+export function boneScore(found: boolean, digs: number, max: number) {
+  if (!found) return 0;
+  return Math.max(0.4, Math.min(1, 0.4 + 0.6 * (1 - (digs - 1) / Math.max(1, max - 1))));
+}
+
+// ── Ritmo de Mochito ────────────────────────────────────────────────
+
+export const RHYTHM_TRAVEL = 1600; // ms que tarda una patita en llegar a la línea
+export const RHYTHM_PERFECT = 110;
+export const RHYTHM_GOOD = 230;
+export const rhythmBeat = (l: "facil" | "normal" | "dificil") => (l === "facil" ? 900 : l === "dificil" ? 520 : 700);
+/** Las patitas de la canción: 24 tiempos, a veces se salta uno. Devuelve en qué ms llega cada una. */
+export function rhythmSong(rnd: () => number, l: "facil" | "normal" | "dificil", beats = 24) {
+  const beat = rhythmBeat(l);
+  const out: number[] = [];
+  for (let i = 0; i < beats; i++) if (i < 2 || rnd() > 0.18) out.push(1200 + i * beat);
+  return out;
+}
+export type Judge = "perfect" | "good" | "miss";
+export const judge = (delta: number): Judge => (Math.abs(delta) <= RHYTHM_PERFECT ? "perfect" : Math.abs(delta) <= RHYTHM_GOOD ? "good" : "miss");
+export const rhythmScore = (perfect: number, good: number, total: number) => (total ? Math.min(1, (perfect + good * 0.6) / total) : 0);
