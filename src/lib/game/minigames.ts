@@ -129,7 +129,7 @@ export function scoreGuess(correct: boolean, cluesUsed: number): number {
 // Tope bajo a propósito: lo que más rinde debe seguir siendo cocinar de verdad (una receta bien hecha da hasta 25 monedas).
 export const DAILY_COIN_CAP = 30;
 export const DAILY_XP_CAP = 40;
-export const GAMES = ["pasos", "memoria", "adivina", "torta", "horno", "atrapa", "cambio", "mochito", "pelota", "escondidas", "simon", "carrera", "cocinam", "memoriam", "hueso", "ritmo", "burbujas", "loteria", "rompecabezas", "lluvia", "laberinto", "pintar", "pesca", "frisbee", "diferencias", "sopa", "numeros", "sombras", "latas", "bolos", "tren", "tambor"] as const;
+export const GAMES = ["pasos", "memoria", "adivina", "torta", "horno", "atrapa", "cambio", "mochito", "pelota", "escondidas", "simon", "carrera", "cocinam", "memoriam", "hueso", "ritmo", "burbujas", "loteria", "rompecabezas", "lluvia", "laberinto", "pintar", "pesca", "frisbee", "diferencias", "sopa", "numeros", "sombras", "latas", "bolos", "tren", "tambor", "gato", "ahorcado", "golf", "torre"] as const;
 export type MiniGame = (typeof GAMES)[number];
 
 export interface MiniReward { xp: number; coins: number; capped: boolean }

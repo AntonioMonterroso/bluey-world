@@ -82,7 +82,8 @@ export type LogEvent =
   | { kind: "thing"; name: string } | { kind: "birthday"; age: number } | { kind: "missions" } | { kind: "cooked"; recipe: string } | { kind: "sticker"; name: string }
   | { kind: "vet"; ailment?: string } | { kind: "story"; title: string } | { kind: "show"; place: string; ribbon: string } | { kind: "painting" }
   | { kind: "groom"; style: string } | { kind: "trip"; place: string; souvenir: string } | { kind: "party"; what: string; friends: string[] } | { kind: "harvest"; what: string } | { kind: "gave"; what: string; to?: string }
-  | { kind: "street"; treasure?: string; neighbor?: string } | { kind: "school"; course: string; diploma: boolean } | { kind: "bake"; recipe: string; count: number };
+  | { kind: "street"; treasure?: string; neighbor?: string } | { kind: "school"; course: string; diploma: boolean } | { kind: "bake"; recipe: string; count: number }
+  | { kind: "buddy"; name: string; what: string } | { kind: "letter"; from: string } | { kind: "camp"; stars: string } | { kind: "stand"; ok: number; total: number };
 
 const listOf = (a: string[]) => (a.length <= 1 ? a.join("") : `${a.slice(0, -1).join(", ")} y ${a[a.length - 1]}`);
 
@@ -115,6 +116,10 @@ export function logLine(ev: LogEvent): string {
     case "street": return `Paseamos con correa por la colonia${ev.neighbor ? ` y saludamos ${ev.neighbor.toLowerCase().startsWith("el ") ? `al ${ev.neighbor.toLowerCase().slice(3)}` : `a ${ev.neighbor.toLowerCase()}`}` : ""}.${ev.treasure ? ` Me traje un tesoro: ${ev.treasure.toLowerCase()}.` : ""}`;
     case "school": return ev.diploma ? `¡Me gradué en «${ev.course}»! Ya tengo mi diploma.` : `Fui a la escuela de perritos: pasé una clase de «${ev.course}».`;
     case "bake": return `Me horneaste ${ev.count} ${ev.recipe.toLowerCase()}. ¡Toda la casa olía rico!`;
+    case "buddy": return `Llegó ${ev.what} a vivir conmigo. Se llama ${ev.name}.`;
+    case "letter": return `Me llegó una carta de ${ev.from} y le contestamos.`;
+    case "camp": return `Acampamos de noche, comimos malvaviscos y descubrimos «${ev.stars}» en el cielo.`;
+    case "stand": return `Atendí mi puesto de limonada: ${ev.ok} de ${ev.total} pedidos salieron perfectos.`;
     case "gave": return ev.to ? `Le regalamos ${ev.what} a ${ev.to}. Se puso feliz.` : `Me diste ${ev.what} de mi jardín. ¡Qué rico!`;
     case "birthday": return `¡Cumplí ${ev.age} ${ev.age === 1 ? "año" : "años"}! Hubo pastel y regalo.`;
   }

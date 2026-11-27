@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Hash, Layers, Cylinder, Target, TrainFront, Drum, Fish, Disc3, SearchCheck, Type, Palette, Puzzle, Route, CloudRain, Bone, Brain, ChefHat, Music, ScanSearch, CircleDot, Grid3x3, Dog, EyeOff, Footprints, LayoutGrid, Wand2, Cake, Coins, ListOrdered, Search, ShoppingBasket, Timer, Trophy } from "lucide-react";
+import { Grid3x3 as GridIcon, SpellCheck, Flag, Blocks, Hash, Layers, Cylinder, Target, TrainFront, Drum, Fish, Disc3, SearchCheck, Type, Palette, Puzzle, Route, CloudRain, Bone, Brain, ChefHat, Music, ScanSearch, CircleDot, Grid3x3, Dog, EyeOff, Footprints, LayoutGrid, Wand2, Cake, Coins, ListOrdered, Search, ShoppingBasket, Timer, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CakeGame } from "@/components/cake-game";
 import { GuessGame, MemoryGame, Result, StepsGame, type Play } from "@/components/mini-games";
@@ -14,6 +14,7 @@ import { BoneGame, RhythmGame } from "@/components/mochito-games-5";
 import { BubbleGame, LoteriaGame } from "@/components/mochito-games-6";
 import { CookieRainGame, MazeGame, PaintGame, PuzzleGame } from "@/components/mochito-games-7";
 import { DiffGame, FishGame, FrisbeeGame, SoupGame } from "@/components/mochito-games-8";
+import { GolfGame, HangmanGame, TicTacGame, TowerGame } from "@/components/mochito-games-10";
 import { BowlingGame, CansGame, DrumGame, NumbersGame, ShadowGame, TrainGame } from "@/components/mochito-games-9";
 import { mochitoGameGoto, useClearMochitoGoto } from "@/lib/mochito-goto";
 import { OvenGame } from "@/components/oven-game";
@@ -51,6 +52,10 @@ const LIST: { id: MiniGame; text: string; icon: typeof Brain }[] = [
   { id: "bolos", text: "Boliche en el parque: apunta, dale efecto y tumba los pinos.", icon: Target },
   { id: "tren", text: "Junta huesos y se te suman amiguitos atrás. ¡No choques!", icon: TrainFront },
   { id: "tambor", text: "Mochito toca una melodía y tú la repites.", icon: Drum },
+  { id: "gato", text: "Tres en línea contra Mochito: huesos contra pelotas.", icon: GridIcon },
+  { id: "ahorcado", text: "Adivina la palabra antes de que Mochito se coma la galleta.", icon: SpellCheck },
+  { id: "golf", text: "Hoyos en el parque con obstáculos: apunta y elige la fuerza.", icon: Flag },
+  { id: "torre", text: "Suelta cada bloque justo encima para hacer la torre más alta.", icon: Blocks },
   { id: "pasos", text: "Pon en orden los pasos de tus recetas.", icon: ListOrdered },
   { id: "memoria", text: "Encuentra las parejas de ingredientes.", icon: Brain },
   { id: "adivina", text: "Pistas de ingredientes y a adivinar.", icon: Search },
@@ -120,6 +125,10 @@ function Inner() {
   if (game === "bolos") return <BowlingGame key={k} play={play} onExit={exit} />;
   if (game === "tren") return <TrainGame key={k} play={play} onExit={exit} />;
   if (game === "tambor") return <DrumGame key={k} play={play} onExit={exit} />;
+  if (game === "gato") return <TicTacGame key={k} play={play} onExit={exit} />;
+  if (game === "ahorcado") return <HangmanGame key={k} play={play} onExit={exit} />;
+  if (game === "golf") return <GolfGame key={k} play={play} onExit={exit} />;
+  if (game === "torre") return <TowerGame key={k} play={play} onExit={exit} />;
 
   return (
     <div className="flex max-w-5xl flex-col gap-6">

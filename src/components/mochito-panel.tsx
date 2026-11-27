@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { Armchair, ChefHat, GraduationCap, Map as MapIcon, Hash, Layers, Cylinder, Target as TargetIcon, Drum, TrainFront, Fish, Disc3, SearchCheck, Type, Sprout, Scissors, Luggage, PartyPopper, BookOpen, CloudRain, Leaf, Palette, Puzzle, Route, Stethoscope, Sun, Trophy, Wind, Award, Check, Star, Target, BookHeart, Cake, Gift, Moon, Bath, Bell, Bone, Camera, Coins, Cookie, Dog, Droplets, Flower2, Footprints, Gamepad2, Hand, Heart, Home, Lock, Shirt, Sparkles, TreePine, Users, Wand2 } from "lucide-react";
+import { Cat, Mail as MailIcon, Tent, GlassWater, Grid3x3 as GridIcon, SpellCheck, Flag, Blocks, Armchair, ChefHat, GraduationCap, Map as MapIcon, Hash, Layers, Cylinder, Target as TargetIcon, Drum, TrainFront, Fish, Disc3, SearchCheck, Type, Sprout, Scissors, Luggage, PartyPopper, BookOpen, CloudRain, Leaf, Palette, Puzzle, Route, Stethoscope, Sun, Trophy, Wind, Award, Check, Star, Target, BookHeart, Cake, Gift, Moon, Bath, Bell, Bone, Camera, Coins, Cookie, Dog, Droplets, Flower2, Footprints, Gamepad2, Hand, Heart, Home, Lock, Shirt, Sparkles, TreePine, Users, Wand2 } from "lucide-react";
 import { DressedImage } from "@/components/dressed-image";
 import { MochitoFigure } from "@/components/mochito-figure";
 import { goTo, type MochitoGoto } from "@/lib/mochito-goto";
@@ -18,6 +18,7 @@ import { useMochitoDid } from "@/components/mochito";
 import { medalInputOf, claimBirthday, claimMissions, missionsEventId, markGreeted, mochitoDo, mochitoWalk, openDailyGift, setMochitoThing } from "@/lib/mochito-actions";
 import { BIRTHDAY_GIFT, MOCHITO_BDAY_LINES, festiveOf, giftFor, giftOpened, isMorning, isNight, logDayTitle, mochitoBirthday, morningLine, nextStreak, sleepyLine } from "@/lib/mochito-life";
 import { dayKey } from "@/lib/game/engine";
+import { FRIENDS as FRIENDS_ALL } from "@/lib/mochito-play";
 import { MISSIONS_REWARD, missionProgress, missionsFor, type Mission, EMPTY_STATS, FRIEND_AT, MEDALS, SCRUB_STEPS, TEACH_TRIES, TRICKS, earnedMedals, friendsOf, mochitoLevel, trickReady, walkedToday, type Friend, type WalkFind } from "@/lib/mochito-play";
 import { FriendsTab } from "@/components/mochito-friends";
 import { StickersTab } from "@/components/mochito-stickers";
@@ -25,6 +26,8 @@ import { HouseArt, HouseDesigner } from "@/components/mochito-house";
 import { PhotoTab } from "@/components/mochito-photos";
 import { ShowScene, StoryScene, VetScene, WeatherLayer } from "@/components/mochito-care-2";
 import { GardenScene, PartyScene, SalonScene, SouvenirShelf, TripScene } from "@/components/mochito-care-3";
+import { BuddyScene, CampScene, MailScene, SkyShelf, StandScene } from "@/components/mochito-care-5";
+import { campKey, letterOf } from "@/lib/mochito-extra-3";
 import { BakeScene, DiplomaShelf, RoomScene, SchoolScene, StreetScene, TreasureShelf } from "@/components/mochito-care-4";
 import { nextCourse } from "@/lib/mochito-extra-2";
 import { daysToParty, groomActive, isWeekend, mochitoParty, partyId, plotGrowth, tripKey } from "@/lib/mochito-extra";
@@ -74,6 +77,10 @@ const GAMES: { goto: MochitoGoto; name: string; icon: typeof Bone }[] = [
   { goto: "juego:bolos", name: "Bolos", icon: TargetIcon },
   { goto: "juego:tren", name: "Tren de huesos", icon: TrainFront },
   { goto: "juego:tambor", name: "Tambores", icon: Drum },
+  { goto: "juego:gato", name: "Gato", icon: GridIcon },
+  { goto: "juego:ahorcado", name: "La galleta", icon: SpellCheck },
+  { goto: "juego:golf", name: "Minigolf", icon: Flag },
+  { goto: "juego:torre", name: "Torre", icon: Blocks },
 ];
 
 const WEATHER_ICON: Record<Weather, typeof Sun> = { sol: Sun, lluvia: CloudRain, viento: Wind, hojas: Leaf };
@@ -110,7 +117,7 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
   const [practice, setPractice] = useState<Record<string, number>>({});
   const [games, setGames] = useState(false);
   const [bath, setBath] = useState(false);
-  const [scene, setScene] = useState<"vet" | "story" | "show" | "garden" | "salon" | "trip" | "party" | "room" | "street" | "school" | "bake" | null>(null);
+  const [scene, setScene] = useState<"vet" | "story" | "show" | "garden" | "salon" | "trip" | "party" | "room" | "street" | "school" | "bake" | "buddy" | "mail" | "camp" | "stand" | null>(null);
   const [walk, setWalk] = useState<{ phase: "going" | "done"; find?: Awaited<ReturnType<typeof mochitoWalk>> } | null>(null);
   const walkRef = useRef<{ arrived: boolean; find?: Awaited<ReturnType<typeof mochitoWalk>> }>({ arrived: false });
   const did = useMochitoDid(open ? now : 0);
@@ -274,7 +281,15 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
 
         {tab === "cuidar" && (
           <div role="tabpanel" className="flex flex-col gap-4">
-            {scene === "room" ? (
+            {scene === "buddy" ? (
+              <BuddyScene buddy={profile.mochito_buddy} now={now} look={{ outfit: profile.mochito_outfit, groom }} onLine={setLine} onClose={() => setScene(null)} />
+            ) : scene === "mail" ? (
+              <MailScene day={dayKey(now)} mail={profile.mochito_mail} friendIds={met.map((f) => f.id)} onLine={setLine} onClose={() => setScene(null)} />
+            ) : scene === "camp" ? (
+              <CampScene camp={profile.mochito_camp} now={now} look={{ outfit: profile.mochito_outfit, groom }} onLine={setLine} onClose={() => setScene(null)} />
+            ) : scene === "stand" ? (
+              <StandScene day={dayKey(now)} done={profile.mochito_stand?.last === dayKey(now)} look={{ outfit: profile.mochito_outfit, groom }} onLine={setLine} onClose={() => setScene(null)} />
+            ) : scene === "room" ? (
               <RoomScene room={profile.mochito_room} home={profile.mochito_home} coins={g.coins} owned={new Set(g.events.map((e) => e.id))} look={{ outfit: profile.mochito_outfit, groom }} onLine={setLine} onClose={() => setScene(null)} />
             ) : scene === "street" ? (
               <StreetScene day={dayKey(now)} done={profile.mochito_street === dayKey(now)} look={{ outfit: profile.mochito_outfit, groom }} onLine={setLine} onClose={() => setScene(null)} />
@@ -343,6 +358,10 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
                   <button type="button" className={cn(action, profile.mochito_street !== dayKey(now) && "border-primary")} onClick={() => { setScene("street"); sfx("click"); setLine(profile.mochito_street === dayKey(now) ? "Ya dimos la vuelta a la colonia hoy. ¿Mañana otra?" : "¿Me pones la correa? ¡Quiero saludar a los vecinos!"); }}><MapIcon className="size-6 text-primary" aria-hidden /> {profile.mochito_street === dayKey(now) ? "Mañana, la colonia" : "Por la colonia"}</button>
                   <button type="button" className={cn(action, profile.mochito_school?.last !== dayKey(now) && nextCourse(profile.mochito_school, lvl.level) && "border-primary")} onClick={() => { setScene("school"); sfx("click"); setLine("¿A la escuela? Llevo mi lonchera… digo, mi hueso."); }}><GraduationCap className="size-6 text-primary" aria-hidden /> Escuela</button>
                   <button type="button" className={action} onClick={() => { setScene("bake"); sfx("click"); setLine("¿Galletas para mí? ¡Yo te ayudo a probarlas!"); }}><ChefHat className="size-6 text-primary" aria-hidden /> Hornear premios</button>
+                  <button type="button" className={cn(action, profile.mochito_buddy && (profile.mochito_buddy.fed !== dayKey(now) || profile.mochito_buddy.played !== dayKey(now)) && "border-primary")} onClick={() => { setScene("buddy"); sfx("click"); setLine(profile.mochito_buddy ? `¿Vamos a ver a ${profile.mochito_buddy.name}?` : "¿Me adoptas un hermanito? ¡Prometo compartir mi cama!"); }}><Cat className="size-6 text-primary" aria-hidden /> {profile.mochito_buddy?.name ?? "Su mascota"}</button>
+                  <button type="button" className={cn(action, (() => { const l = letterOf(dayKey(now), (met.length ? met : FRIENDS_ALL).map((f) => f.id)); return l && profile.mochito_mail?.[l.id]?.reply === undefined; })() && "border-primary")} onClick={() => { setScene("mail"); sfx("click"); }}><MailIcon className="size-6 text-primary" aria-hidden /> Buzón</button>
+                  <button type="button" className={cn(action, profile.mochito_camp?.last !== campKey(now) && "border-primary")} onClick={() => { setScene("camp"); sfx("click"); setLine(profile.mochito_camp?.last === campKey(now) ? "Ya acampamos esta semana. ¿Vemos las estrellas que descubrimos?" : "¿Acampamos? ¡Yo llevo la linterna!"); }}><Tent className="size-6 text-primary" aria-hidden /> Acampar</button>
+                  <button type="button" className={cn(action, profile.mochito_stand?.last !== dayKey(now) && "border-primary")} onClick={() => { setScene("stand"); sfx("click"); setLine(profile.mochito_stand?.last === dayKey(now) ? "Hoy ya vendimos todo. ¡Mañana más!" : "¡A abrir el puesto! ¿Quién quiere limonada?"); }}><GlassWater className="size-6 text-primary" aria-hidden /> Limonada</button>
                   <button type="button" className={action} onClick={talk}><Sparkles className="size-6 text-primary" aria-hidden /> Otra frase</button>
                 </div>
                 {games && (
@@ -437,6 +456,7 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
         {tab === "cosas" && <SouvenirShelf places={profile.mochito_trips?.places} />}
         {tab === "cosas" && <TreasureShelf have={profile.mochito_treasures} />}
         {tab === "cosas" && <DiplomaShelf school={profile.mochito_school} />}
+        {tab === "cosas" && <SkyShelf camp={profile.mochito_camp} />}
         {tab === "amigos" && <FriendsTab met={profile.mochito_friends} />}
         {tab === "fotos" && <PhotoTab level={lvl.level} onLine={setLine} />}
         {tab === "pegatinas" && <StickersTab have={profile.mochito_stickers} outfit={profile.mochito_outfit} />}

@@ -51,6 +51,10 @@ export interface Profile extends SyncRow {
   mochito_school?: import("../mochito-extra-2").School; // escuela: clases aprobadas por curso y último día de clase
   mochito_jar?: Record<string, number>; // frasco de premios horneados que aún no se usan
   mochito_baked?: Record<string, number>; // tandas horneadas por receta
+  mochito_buddy?: import("../mochito-extra-3").Buddy; // su mascota: tipo, nombre, corazones y si ya comió/jugó hoy
+  mochito_mail?: import("../mochito-extra-3").Mail; // cartas de sus amigos: día → de quién, cuál carta y qué le contestaste
+  mochito_camp?: import("../mochito-extra-3").Camp; // campamento: última semana y constelaciones descubiertas
+  mochito_stand?: { last?: string; perfect?: number }; // puesto de limonada: último día y días sin errores
   mochito_house?: { style?: string; roof?: string; wall?: string; flowers?: string; sign?: string }; // su casita en el jardín
   mochito_stats?: import("../mochito-play").MochitoStats; // nivel, cuentas y días que lo cuidaste
   mochito_tricks?: string[]; // trucos que ya aprendió

@@ -12,6 +12,7 @@ import {
   type CourseId, type RoomSlot, type Treasure, type Treat,
 } from "@/lib/mochito-extra-2";
 import type { GameEvent } from "@/lib/db/db";
+import { CAMP_COINS, CONSTELLATIONS, LETTER_COINS, PETS, STAND_COIN_PER, buddyName, campKey, type Constellation, type PetKind } from "@/lib/mochito-extra-3";
 import { RIBBONS, WEATHER, weatherOf, type Ribbon, type Story, type Weather } from "@/lib/mochito-more";
 import { MOCHITO_WEAR, WEAR_ITEMS, mochitoWearUnlocked } from "@/lib/game/wardrobe";
 import { PET_ITEMS } from "@/lib/game/shop";
@@ -31,6 +32,7 @@ export function medalInputOf(p: Partial<typeof DEFAULT_PROFILE>): MedalInput {
     places: Object.values(p.mochito_trips?.places ?? {}).filter((n) => n > 0).length,
     cozy: roomCozy(p.mochito_room), treasures: Object.values(p.mochito_treasures ?? {}).filter((n) => n > 0).length,
     diplomas: diplomas(p.mochito_school), bakedKinds: Object.values(p.mochito_baked ?? {}).filter((n) => n > 0).length,
+    buddyHearts: p.mochito_buddy?.hearts ?? 0, stars: new Set(p.mochito_camp?.stars ?? []).size, perfectStand: (p.mochito_stand?.perfect ?? 0) > 0,
   };
 }
 
@@ -414,4 +416,73 @@ export async function spendJar(t: Treat, friendId?: string) {
     ...(friend ? { mochito_friends: { ...p.mochito_friends, [friend.id]: (p.mochito_friends?.[friend.id] ?? 0) + 1 }, mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "gave", what, to: friend.name })) } : {}),
   });
   return mochitoDo(friend ? "pet" : "treat");
+}
+
+// ── Su mascota ──────────────────────────────────────────────────────
+
+/** Adopta su mascota (una sola). */
+export async function adoptBuddy(kind: PetKind, name: string) {
+  const now = Date.now();
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_buddy) return null;
+  const n = buddyName(name) || PETS[kind].name;
+  await updateProfile({ mochito_buddy: { kind, name: n, since: dayKey(now), hearts: 0 }, mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "buddy", name: n, what: `un ${PETS[kind].name.toLowerCase()}`.replace("un tortuguita", "una tortuguita") })) });
+  return mochitoDo("buddy");
+}
+
+/** Le da de comer o juegan con ella: cada cosa una vez al día suma un corazón. */
+export async function buddyCare(what: "fed" | "played") {
+  const now = Date.now();
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  const b = p.mochito_buddy;
+  const d = dayKey(now);
+  if (!b || b[what] === d) return null;
+  await updateProfile({ mochito_buddy: { ...b, [what]: d, hearts: b.hearts + 1 } });
+  return mochitoDo("buddy");
+}
+
+// ── Cartas ──────────────────────────────────────────────────────────
+
+/** Contesta la carta del día: el amigo queda más cerca y da unas monedas (una vez por carta). */
+export async function replyLetter(id: string, from: string, letter: number, reply: number) {
+  const now = Date.now();
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_mail?.[id]?.reply !== undefined) return null;
+  const friend = FRIENDS.find((f) => f.id === from);
+  const mail = { ...p.mochito_mail, [id]: { from, letter, reply } };
+  const keep = Object.fromEntries(Object.entries(mail).sort(([a], [b]) => a.localeCompare(b)).slice(-40));
+  await updateProfile({
+    mochito_mail: keep,
+    mochito_friends: { ...p.mochito_friends, [from]: (p.mochito_friends?.[from] ?? 0) + 1 },
+    mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "letter", from: friend?.name ?? from })),
+  });
+  await writeAwards([{ id: `mochito-carta:${id}`, kind: "mochito", label: `Carta de ${friend?.name ?? from}`, xp: 0, coins: LETTER_COINS, at: now }], await db.game_events.toArray());
+  return mochitoDo("letter");
+}
+
+// ── Campamento ──────────────────────────────────────────────────────
+
+/** Terminó el campamento de la semana: guarda la constelación descubierta. */
+export async function finishCamp(stars: Constellation) {
+  const now = Date.now();
+  const key = campKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_camp?.last === key) return null;
+  const name = CONSTELLATIONS.find((c) => c.id === stars)!.name;
+  await updateProfile({ mochito_camp: { last: key, stars: [...new Set([...(p.mochito_camp?.stars ?? []), stars])] }, mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "camp", stars: name })) });
+  await writeAwards([{ id: `mochito-campamento:${key}`, kind: "mochito", label: "Campamento con Mochito", xp: 0, coins: CAMP_COINS, at: now }], await db.game_events.toArray());
+  return mochitoDo("camp");
+}
+
+// ── Puesto de limonada ──────────────────────────────────────────────
+
+/** Cierra el puesto del día: cobra por cada pedido bien servido. */
+export async function finishStand(ok: number, total: number) {
+  const now = Date.now();
+  const d = dayKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_stand?.last === d) return null;
+  await updateProfile({ mochito_stand: { last: d, perfect: (p.mochito_stand?.perfect ?? 0) + (ok === total ? 1 : 0) }, mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "stand", ok, total })) });
+  if (ok > 0) await writeAwards([{ id: `mochito-limonada:${d}`, kind: "mochito", label: "Puesto de limonada de Mochito", xp: 0, coins: ok * STAND_COIN_PER, at: now }], await db.game_events.toArray());
+  return mochitoDo("stand");
 }
