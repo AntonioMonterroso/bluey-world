@@ -14,6 +14,9 @@ export interface MochitoStats {
   vets?: number;
   stories?: number;
   shows?: number;
+  grooms?: number;
+  trips?: number;
+  parties?: number;
   days: string[]; // días en que lo cuidaste
   walk_day?: string; // último día que salió de paseo
   xp_day?: string;
@@ -22,11 +25,11 @@ export interface MochitoStats {
   count?: Partial<Record<CareKind, number>>; // lo que hicieron hoy (para las misiones)
 }
 
-export type CareKind = "pet" | "treat" | "game" | "walk" | "trick" | "bath" | "photo" | "vet" | "story" | "show";
+export type CareKind = "pet" | "treat" | "game" | "walk" | "trick" | "bath" | "photo" | "vet" | "story" | "show" | "groom" | "trip" | "party" | "garden";
 
 export const EMPTY_STATS: MochitoStats = { xp: 0, pets: 0, treats: 0, games: 0, walks: 0, days: [] };
 
-export const CARE_XP: Record<CareKind, number> = { pet: 2, treat: 4, game: 6, walk: 8, trick: 10, bath: 6, photo: 2, vet: 6, story: 4, show: 10 };
+export const CARE_XP: Record<CareKind, number> = { pet: 2, treat: 4, game: 6, walk: 8, trick: 10, bath: 6, photo: 2, vet: 6, story: 4, show: 10, groom: 6, trip: 12, party: 15, garden: 3 };
 /** Tope de experiencia por día con cariños, galletas y juegos (el paseo y los trucos no cuentan). */
 export const DAILY_XP = 40;
 export const PET_XP_EVERY_MS = 5 * 60_000;
@@ -48,10 +51,13 @@ export function applyCare(stats: MochitoStats | undefined, kind: CareKind, now: 
   if (kind === "vet") s.vets = (s.vets ?? 0) + 1;
   if (kind === "story") s.stories = (s.stories ?? 0) + 1;
   if (kind === "show") s.shows = (s.shows ?? 0) + 1;
+  if (kind === "groom") s.grooms = (s.grooms ?? 0) + 1;
+  if (kind === "trip") s.trips = (s.trips ?? 0) + 1;
+  if (kind === "party") s.parties = (s.parties ?? 0) + 1;
 
   let gain = CARE_XP[kind];
   if (kind === "pet" && lastPet && now - lastPet < PET_XP_EVERY_MS) gain = 0;
-  if (kind === "pet" || kind === "treat" || kind === "game" || kind === "bath" || kind === "photo" || kind === "vet" || kind === "story") {
+  if (kind === "pet" || kind === "treat" || kind === "game" || kind === "bath" || kind === "photo" || kind === "vet" || kind === "story" || kind === "groom" || kind === "garden") {
     const today = s.xp_day === day ? (s.xp_today ?? 0) : 0;
     gain = Math.max(0, Math.min(gain, DAILY_XP - today));
     s.xp_day = day;
@@ -95,7 +101,7 @@ export const trickReady = (t: Trick, level: number) => level >= t.level;
 
 // ── Medallas ────────────────────────────────────────────────────────
 
-export interface MedalInput { stats: MochitoStats; tricks: string[]; level: number; things: number; friends?: number; stickers?: number; weathers?: number; storiesRead?: number; blue?: number }
+export interface MedalInput { stats: MochitoStats; tricks: string[]; level: number; things: number; friends?: number; stickers?: number; weathers?: number; storiesRead?: number; blue?: number; harvests?: number; seedKinds?: number; places?: number }
 export interface Medal { id: string; name: string; desc: string; coins: number; check: (m: MedalInput) => boolean }
 
 export const MEDALS: Medal[] = [
@@ -125,6 +131,14 @@ export const MEDALS: Medal[] = [
   { id: "cuentos-10", name: "Buenas noches", desc: "Léele 10 cuentos.", coins: 10, check: (m) => (m.stats.stories ?? 0) >= 10 },
   { id: "liston-azul", name: "Campeón del parque", desc: "Gana el listón azul en el concurso.", coins: 20, check: (m) => (m.blue ?? 0) >= 1 },
   { id: "clima-todos", name: "Llueva o truene", desc: "Pasea con sol, lluvia, viento y hojas.", coins: 15, check: (m) => (m.weathers ?? 0) >= 4 },
+  { id: "jardin-1", name: "Primera cosecha", desc: "Cosecha algo de su jardín.", coins: 5, check: (m) => (m.harvests ?? 0) >= 1 },
+  { id: "jardin-20", name: "Manos verdes", desc: "Cosecha 20 veces.", coins: 15, check: (m) => (m.harvests ?? 0) >= 20 },
+  { id: "jardin-todo", name: "Huerto completo", desc: "Cosecha las 6 semillas distintas.", coins: 20, check: (m) => (m.seedKinds ?? 0) >= 6 },
+  { id: "pelu-1", name: "Recién peinado", desc: "Llévalo a la peluquería.", coins: 5, check: (m) => (m.stats.grooms ?? 0) >= 1 },
+  { id: "pelu-10", name: "Pelo de concurso", desc: "Péinalo 10 veces.", coins: 10, check: (m) => (m.stats.grooms ?? 0) >= 10 },
+  { id: "viaje-1", name: "Mochilero", desc: "Llévalo de viaje un fin de semana.", coins: 10, check: (m) => (m.places ?? 0) >= 1 },
+  { id: "viaje-todos", name: "Trotamundos", desc: "Visita los 6 lugares de viaje.", coins: 30, check: (m) => (m.places ?? 0) >= 6 },
+  { id: "fiesta-1", name: "Fiestero", desc: "Hazle su fiesta de cumpleaños o de cumplemés.", coins: 10, check: (m) => (m.stats.parties ?? 0) >= 1 },
   { id: "amigos-todos", name: "Amigo de todos", desc: "Hazte amigo de todos los perritos del parque.", coins: 30, check: (m) => (m.friends ?? 0) >= FRIENDS.length },
 ];
 

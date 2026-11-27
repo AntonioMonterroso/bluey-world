@@ -80,7 +80,10 @@ export type LogEvent =
   | { kind: "walk"; friend?: string; newFriend?: boolean; weather?: string } | { kind: "game"; game?: string }
   | { kind: "trick"; name: string } | { kind: "medal"; name: string } | { kind: "level"; level: number }
   | { kind: "thing"; name: string } | { kind: "birthday"; age: number } | { kind: "missions" } | { kind: "cooked"; recipe: string } | { kind: "sticker"; name: string }
-  | { kind: "vet"; ailment?: string } | { kind: "story"; title: string } | { kind: "show"; place: string; ribbon: string } | { kind: "painting" };
+  | { kind: "vet"; ailment?: string } | { kind: "story"; title: string } | { kind: "show"; place: string; ribbon: string } | { kind: "painting" }
+  | { kind: "groom"; style: string } | { kind: "trip"; place: string; souvenir: string } | { kind: "party"; what: string; friends: string[] } | { kind: "harvest"; what: string } | { kind: "gave"; what: string; to?: string };
+
+const listOf = (a: string[]) => (a.length <= 1 ? a.join("") : `${a.slice(0, -1).join(", ")} y ${a[a.length - 1]}`);
 
 /** Cómo lo cuenta Mochito en su diario (en primera persona). */
 export function logLine(ev: LogEvent): string {
@@ -104,6 +107,11 @@ export function logLine(ev: LogEvent): string {
     case "story": return `Me leíste «${ev.title}» y me dormí abrazando mi juguete.`;
     case "show": return `Fui al concurso de perritos y gané el ${ev.ribbon.toLowerCase()} (${ev.place.toLowerCase()}).`;
     case "painting": return "Me pintaste de colores. ¡Quedé en mi álbum!";
+    case "groom": return `Fui a la peluquería y me peinaron con ${ev.style.toLowerCase()}. ¡Quedé guapísimo!`;
+    case "trip": return `Nos fuimos de viaje ${ev.place} y traje un recuerdo: ${ev.souvenir.toLowerCase()}.`;
+    case "party": return `¡Me hiciste mi fiesta de ${ev.what}!${ev.friends.length ? ` Vinieron ${listOf(ev.friends)}.` : ""}`;
+    case "harvest": return `Cosechamos ${ev.what} en mi jardín.`;
+    case "gave": return ev.to ? `Le regalamos ${ev.what} a ${ev.to}. Se puso feliz.` : `Me diste ${ev.what} de mi jardín. ¡Qué rico!`;
     case "birthday": return `¡Cumplí ${ev.age} ${ev.age === 1 ? "año" : "años"}! Hubo pastel y regalo.`;
   }
 }

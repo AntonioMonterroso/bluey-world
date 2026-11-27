@@ -3,6 +3,7 @@
 import { motion, useReducedMotion } from "motion/react";
 import { DressedImage } from "@/components/dressed-image";
 import type { Festive } from "@/lib/mochito-life";
+import type { Groom } from "@/lib/mochito-extra";
 import { cn } from "@/lib/utils";
 
 /** Lo que se pone solo en fiestas. Dibujado sobre la cabeza de Mochito (centro 60, arriba 6 en un lienzo de 100×143). */
@@ -55,17 +56,54 @@ function FestiveArt({ kind }: { kind: Festive }) {
   }
 }
 
+function Bow({ x, y, c, s = 1, r = 0 }: { x: number; y: number; c: string; s?: number; r?: number }) {
+  const line = "rgb(0 0 0 / 0.25)";
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${r}) scale(${s})`}>
+      <path d="M0 0 L-9 -6 Q-11 0 -9 6 Z" fill={c} stroke={line} strokeWidth="0.7" />
+      <path d="M0 0 L9 -6 Q11 0 9 6 Z" fill={c} stroke={line} strokeWidth="0.7" />
+      <circle r="2.6" fill={c} stroke={line} strokeWidth="0.7" />
+    </g>
+  );
+}
+
+/** El peinado de la peluquería, dibujado en el mismo lienzo que las fiestas. */
+export function GroomArt({ g }: { g: Pick<Groom, "style" | "color"> }) {
+  const line = "rgb(0 0 0 / 0.25)";
+  switch (g.style) {
+    case "copete":
+      return (
+        <g>
+          <path d="M54 8 Q50 -8 62 -10 Q72 -10 68 -2 Q64 4 60 -2 Q58 -6 62 -6" fill="none" stroke="#e9c46a" strokeWidth="5" strokeLinecap="round" />
+          <path d="M54 8 Q50 -8 62 -10 Q72 -10 68 -2" fill="none" stroke={line} strokeWidth="0.6" />
+          <rect x="51" y="5" width="8" height="4" rx="2" fill={g.color} stroke={line} strokeWidth="0.6" />
+        </g>
+      );
+    case "mono": return <Bow x={74} y={9} c={g.color} r={18} />;
+    case "monitos": return <g><Bow x={36} y={16} c={g.color} s={0.8} r={-20} /><Bow x={82} y={13} c={g.color} s={0.8} r={20} /></g>;
+    case "flor":
+      return (
+        <g transform="translate(74 9)">
+          {[0, 72, 144, 216, 288].map((a) => <ellipse key={a} cx="0" cy="-5" rx="3.4" ry="5" fill={g.color} stroke={line} strokeWidth="0.6" transform={`rotate(${a})`} />)}
+          <circle r="3" fill="#f6c744" stroke={line} strokeWidth="0.6" />
+        </g>
+      );
+    case "colita": return <Bow x={14} y={108} c={g.color} s={0.9} r={-30} />;
+  }
+}
+
 /** Mochito con su ropa, más lo que se pone solo en fiestas, y con «zzz» cuando duerme. */
-export function MochitoFigure({ outfit, festive, sleeping = false, className, children }: {
-  outfit?: Record<string, string>; festive?: Festive | null; sleeping?: boolean; className?: string; children?: React.ReactNode;
+export function MochitoFigure({ outfit, festive, groom, sleeping = false, className, children }: {
+  outfit?: Record<string, string>; festive?: Festive | null; groom?: Pick<Groom, "style" | "color"> | null; sleeping?: boolean; className?: string; children?: React.ReactNode;
 }) {
   const reduce = useReducedMotion();
   return (
     <span className={cn("relative inline-block h-full", className)}>
       <DressedImage char="mochito" outfit={outfit} alt="" className={cn("h-full transition-[filter] duration-500", sleeping && "brightness-[0.82] saturate-[0.85]")} />
-      {festive && (
+      {(festive || groom) && (
         <svg viewBox="0 0 100 143" className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden>
-          <FestiveArt kind={festive} />
+          {groom && <GroomArt g={groom} />}
+          {festive && <FestiveArt kind={festive} />}
         </svg>
       )}
       {children}

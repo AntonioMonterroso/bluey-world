@@ -39,6 +39,12 @@ export interface Profile extends SyncRow {
   mochito_show?: { week: string; ribbon: string; total: number }; // concurso de perritos de esta semana
   mochito_ribbons?: Record<string, number>; // listones ganados: color → cuántos
   mochito_weathers?: string[]; // climas en que ha paseado
+  mochito_garden?: (import("../mochito-extra").Plot | null)[]; // su jardín: lo sembrado en cada parcela
+  mochito_basket?: Record<string, number>; // canasta: lo cosechado que aún no se usa
+  mochito_harvest?: Record<string, number>; // todo lo que ha cosechado (semilla → cuántas veces)
+  mochito_groom?: import("../mochito-extra").Groom; // peinado de la peluquería (dura unos días)
+  mochito_trips?: { last?: string; places?: Record<string, number> }; // viajes: último fin de semana y lugares visitados
+  mochito_parties?: string[]; // días en que le hiciste fiesta
   mochito_house?: { style?: string; roof?: string; wall?: string; flowers?: string; sign?: string }; // su casita en el jardín
   mochito_stats?: import("../mochito-play").MochitoStats; // nivel, cuentas y días que lo cuidaste
   mochito_tricks?: string[]; // trucos que ya aprendió

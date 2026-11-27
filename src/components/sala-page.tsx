@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Palette, Puzzle, Route, CloudRain, Bone, Brain, ChefHat, Music, ScanSearch, CircleDot, Grid3x3, Dog, EyeOff, Footprints, LayoutGrid, Wand2, Cake, Coins, ListOrdered, Search, ShoppingBasket, Timer, Trophy } from "lucide-react";
+import { Fish, Disc3, SearchCheck, Type, Palette, Puzzle, Route, CloudRain, Bone, Brain, ChefHat, Music, ScanSearch, CircleDot, Grid3x3, Dog, EyeOff, Footprints, LayoutGrid, Wand2, Cake, Coins, ListOrdered, Search, ShoppingBasket, Timer, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CakeGame } from "@/components/cake-game";
 import { GuessGame, MemoryGame, Result, StepsGame, type Play } from "@/components/mini-games";
@@ -13,6 +13,7 @@ import { CookGame, MemoGame } from "@/components/mochito-games-4";
 import { BoneGame, RhythmGame } from "@/components/mochito-games-5";
 import { BubbleGame, LoteriaGame } from "@/components/mochito-games-6";
 import { CookieRainGame, MazeGame, PaintGame, PuzzleGame } from "@/components/mochito-games-7";
+import { DiffGame, FishGame, FrisbeeGame, SoupGame } from "@/components/mochito-games-8";
 import { mochitoGameGoto, useClearMochitoGoto } from "@/lib/mochito-goto";
 import { OvenGame } from "@/components/oven-game";
 import { Stars } from "@/components/stars";
@@ -39,6 +40,10 @@ const LIST: { id: MiniGame; text: string; icon: typeof Brain }[] = [
   { id: "lluvia", text: "Llueven galletas: atrápalas y esquiva las ramitas.", icon: CloudRain },
   { id: "laberinto", text: "Guía a Mochito hasta su hueso. Cada día hay uno nuevo.", icon: Route },
   { id: "pintar", text: "Colorea a Mochito y guarda tu dibujo en su álbum.", icon: Palette },
+  { id: "pesca", text: "Cuando el corcho se hunda, ¡jala rápido!", icon: Fish },
+  { id: "frisbee", text: "Lanza con la fuerza justa para que Mochito lo atrape.", icon: Disc3 },
+  { id: "diferencias", text: "Dos dibujos del parque casi iguales: encuentra lo que cambió.", icon: SearchCheck },
+  { id: "sopa", text: "Palabras de perritos escondidas entre letras.", icon: Type },
   { id: "pasos", text: "Pon en orden los pasos de tus recetas.", icon: ListOrdered },
   { id: "memoria", text: "Encuentra las parejas de ingredientes.", icon: Brain },
   { id: "adivina", text: "Pistas de ingredientes y a adivinar.", icon: Search },
@@ -98,6 +103,10 @@ function Inner() {
   if (game === "lluvia") return <CookieRainGame key={k} play={play} onExit={exit} />;
   if (game === "laberinto") return <MazeGame key={k} play={play} onExit={exit} />;
   if (game === "pintar") return <PaintGame key={k} play={play} onExit={exit} />;
+  if (game === "pesca") return <FishGame key={k} play={play} onExit={exit} />;
+  if (game === "frisbee") return <FrisbeeGame key={k} play={play} onExit={exit} />;
+  if (game === "diferencias") return <DiffGame key={k} play={play} onExit={exit} />;
+  if (game === "sopa") return <SoupGame key={k} play={play} onExit={exit} />;
 
   return (
     <div className="flex max-w-5xl flex-col gap-6">

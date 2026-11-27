@@ -6,6 +6,7 @@ import { upsertRow } from "@/lib/db/repo";
 import { dayKey } from "@/lib/game/engine";
 import { pushToast, writeAwards } from "@/lib/game/use-game";
 import { STICKER_CHANCE, pickSticker, stickerCount, type Sticker } from "@/lib/mochito-stickers";
+import { HARVEST_COINS, PARTY_COINS, PLACES, PLOTS, SEEDS, TRIP_COINS, partyId, plant, tripKey, waterPlot, type Groom, type Place, type Plot, type Seed } from "@/lib/mochito-extra";
 import { RIBBONS, WEATHER, weatherOf, type Ribbon, type Story, type Weather } from "@/lib/mochito-more";
 import { MOCHITO_WEAR, WEAR_ITEMS, mochitoWearUnlocked } from "@/lib/game/wardrobe";
 import { PET_ITEMS } from "@/lib/game/shop";
@@ -21,6 +22,8 @@ export function medalInputOf(p: Partial<typeof DEFAULT_PROFILE>): MedalInput {
     stats, tricks: p.mochito_tricks ?? [], level: mochitoLevel(stats.xp).level, things: thingsOf(p.mochito_home),
     friends: friendsOf(p.mochito_friends).length, stickers: stickerCount(p.mochito_stickers),
     weathers: new Set(p.mochito_weathers ?? []).size, storiesRead: new Set(p.mochito_stories ?? []).size, blue: p.mochito_ribbons?.azul ?? 0,
+    harvests: Object.values(p.mochito_harvest ?? {}).reduce((a, n) => a + n, 0), seedKinds: Object.values(p.mochito_harvest ?? {}).filter((n) => n > 0).length,
+    places: Object.values(p.mochito_trips?.places ?? {}).filter((n) => n > 0).length,
   };
 }
 
@@ -218,4 +221,103 @@ export async function savePainting(data: string) {
   const now = Date.now();
   await db.mochito_photos.put({ id: `pintura-${now}`, at: now, data, scene: "pintura" });
   await mochitoLog({ kind: "painting" });
+}
+
+// ── Jardín ──────────────────────────────────────────────────────────
+
+const gardenOf = (g: (Plot | null)[] | undefined) => Array.from({ length: PLOTS }, (_, i) => g?.[i] ?? null);
+
+/** Siembra una semilla en una parcela vacía. */
+export async function plantSeed(i: number, seed: Seed) {
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  const garden = gardenOf(p.mochito_garden);
+  if (garden[i]) return;
+  garden[i] = plant(seed, Date.now());
+  await updateProfile({ mochito_garden: garden });
+}
+
+/** Riega una parcela (cuenta una vez al día). */
+export async function waterSeed(i: number) {
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  const garden = gardenOf(p.mochito_garden);
+  const plot = garden[i];
+  if (!plot) return;
+  garden[i] = waterPlot(plot, Date.now());
+  await updateProfile({ mochito_garden: garden });
+}
+
+/** Cosecha lo que ya creció: va a la canasta y da unas monedas. */
+export async function harvestSeed(i: number) {
+  const now = Date.now();
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  const garden = gardenOf(p.mochito_garden);
+  const plot = garden[i];
+  if (!plot) return null;
+  garden[i] = null;
+  const seed = plot.seed;
+  await updateProfile({
+    mochito_garden: garden,
+    mochito_basket: { ...p.mochito_basket, [seed]: (p.mochito_basket?.[seed] ?? 0) + 1 },
+    mochito_harvest: { ...p.mochito_harvest, [seed]: (p.mochito_harvest?.[seed] ?? 0) + 1 },
+    mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "harvest", what: SEEDS[seed].one })),
+  });
+  await writeAwards([{ id: `mochito-cosecha:${dayKey(now)}:${i}:${plot.planted}`, kind: "mochito", label: `Cosecha del jardín: ${SEEDS[seed].name.toLowerCase()}`, xp: 0, coins: HARVEST_COINS, at: now }], await db.game_events.toArray());
+  return mochitoDo("garden");
+}
+
+/** Usa algo de la canasta: la comida se la come Mochito; las flores se las regalas a un amigo (o a él). */
+export async function spendBasket(seed: Seed, friendId?: string) {
+  const now = Date.now();
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  const have = p.mochito_basket?.[seed] ?? 0;
+  if (have <= 0) return null;
+  const friend = friendId ? FRIENDS.find((f) => f.id === friendId) : undefined;
+  await updateProfile({
+    mochito_basket: { ...p.mochito_basket, [seed]: have - 1 },
+    ...(friend ? { mochito_friends: { ...p.mochito_friends, [friend.id]: (p.mochito_friends?.[friend.id] ?? 0) + 1 } } : {}),
+    mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "gave", what: SEEDS[seed].one, to: friend?.name })),
+  });
+  return mochitoDo(SEEDS[seed].kind === "comida" ? "treat" : "pet");
+}
+
+// ── Peluquería ──────────────────────────────────────────────────────
+
+/** Termina en la peluquería: el peinado le dura unos días. */
+export async function saveGroom(g: Groom, styleName: string) {
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  await updateProfile({ mochito_groom: g, mochito_log: appendLog(p.mochito_log, Date.now(), logLine({ kind: "groom", style: styleName })) });
+  return mochitoDo("groom");
+}
+
+// ── Viajes ──────────────────────────────────────────────────────────
+
+/** El viaje del fin de semana: una vez por fin de semana, trae un recuerdo y unas monedas. */
+export async function takeTrip(place: Place) {
+  const now = Date.now();
+  const key = tripKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_trips?.last === key) return null;
+  const info = PLACES[place];
+  const places = { ...p.mochito_trips?.places, [place]: (p.mochito_trips?.places?.[place] ?? 0) + 1 };
+  await updateProfile({ mochito_trips: { last: key, places }, mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "trip", place: info.to, souvenir: info.souvenir })) });
+  await writeAwards([{ id: `mochito-viaje:${key}`, kind: "mochito", label: `Viaje con Mochito ${info.to}`, xp: 0, coins: TRIP_COINS, at: now }], await db.game_events.toArray());
+  return mochitoDo("trip");
+}
+
+// ── Fiesta ──────────────────────────────────────────────────────────
+
+/** Su fiesta (una por día de fiesta): monedas, una pegatina y, si hay, una prenda nueva. */
+export async function throwParty(what: string, friends: string[]) {
+  const now = Date.now();
+  const id = partyId(now);
+  if (await db.game_events.get(id)) return null;
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  const owned = new Set((await db.owned_items.toArray()).filter((o) => !o.deleted_at).map((o) => o.id));
+  const cheap = WEAR_ITEMS.filter((w) => !w.event && w.price > 0 && w.price <= 60 && !owned.has(w.id));
+  const wear = cheap.length ? cheap[Math.floor(Math.random() * cheap.length)] : null;
+  if (wear) await upsertRow<OwnedItem>("owned_items", { id: wear.id, bought_at: now });
+  await updateProfile({ mochito_parties: [...(p.mochito_parties ?? []), dayKey(now)].slice(-60), mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "party", what, friends })) });
+  await writeAwards([{ id, kind: "mochito", label: `Fiesta de Mochito (${what})`, xp: 0, coins: PARTY_COINS + (wear ? 0 : 10), at: now }], await db.game_events.toArray());
+  const r = await mochitoDo("party");
+  return { ...r, wear: wear?.name ?? null, coins: PARTY_COINS + (wear ? 0 : 10) };
 }

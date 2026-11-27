@@ -11,6 +11,7 @@ import { goTo } from "@/lib/mochito-goto";
 import { enterShow, mochitoVet, readStory } from "@/lib/mochito-actions";
 import { AILMENTS, RIBBONS, SHOW_CATEGORY, STORIES, VET_DOCTOR, VET_TOOLS, judgeShow, ribbonFor, showJudges, showTotal, showWeek, storyOfDay, vetSteps, type Ailment, type JudgeScore, type Ribbon, type Story, type VetTool, type Weather } from "@/lib/mochito-more";
 import { FRIENDS, TRICKS } from "@/lib/mochito-play";
+import type { Groom } from "@/lib/mochito-extra";
 import { TRICK_MOVES } from "@/lib/mochito-moves";
 import { sfx } from "@/lib/sfx";
 import { cn } from "@/lib/utils";
@@ -200,14 +201,14 @@ export function RibbonArt({ ribbon, className }: { ribbon: Ribbon; className?: s
 }
 
 /** El concurso de la semana: lo vistes, eliges un truco, desfila y los jueces (sus amigos) le dan listón. */
-export function ShowScene({ now, outfit, tricks, clean, love, metFriends, result, onLine, onClose }: {
-  now: number; outfit?: Record<string, string>; tricks: string[]; clean: number; love: number; metFriends: string[];
+export function ShowScene({ now, outfit, groom, tricks, clean, love, metFriends, result, onLine, onClose }: {
+  now: number; outfit?: Record<string, string>; groom?: Groom | null; tricks: string[]; clean: number; love: number; metFriends: string[];
   result?: { week: string; ribbon: string; total: number }; onLine: (s: string) => void; onClose: () => void;
 }) {
   const reduce = useReducedMotion();
   const week = showWeek(now);
   const judgesIds = showJudges(metFriends.length >= 3 ? metFriends : FRIENDS.map((f) => f.id), week);
-  const outfitCount = Object.values(outfit ?? {}).filter(Boolean).length;
+  const outfitCount = Object.values(outfit ?? {}).filter(Boolean).length + (groom ? 1 : 0);
   const learned = TRICKS.filter((t) => tricks.includes(t.id));
   const [trick, setTrick] = useState<string | null>(learned.at(-1)?.id ?? null);
   const [phase, setPhase] = useState<"prep" | "walk" | "scores">("prep");
@@ -275,7 +276,7 @@ export function ShowScene({ now, outfit, tricks, clean, love, metFriends, result
           transition={{ duration: phase === "prep" ? 0 : 1.6, ease: EASE_OUT }}
         >
           <motion.span className="block h-full" style={{ transformOrigin: "50% 100%" }} initial={false} animate={phase !== "prep" && moving && !reduce ? { transform: moving } : undefined} transition={{ duration: 0.9, delay: 1.5, ease: EASE_OUT }}>
-            <MochitoFigure outfit={outfit} />
+            <MochitoFigure outfit={outfit} groom={groom} />
           </motion.span>
         </motion.div>
       </div>
@@ -283,7 +284,7 @@ export function ShowScene({ now, outfit, tricks, clean, love, metFriends, result
       {phase === "prep" && (
         <>
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-3xl bg-secondary/60 p-3 text-sm">
-            <span><span className="font-semibold">Estilo:</span> trae {outfitCount} {outfitCount === 1 ? "prenda" : "prendas"}{outfitCount < 4 ? ". Con 4 o más luce mejor." : ". ¡Muy elegante!"}</span>
+            <span><span className="font-semibold">Estilo:</span> trae {outfitCount} {outfitCount === 1 ? "prenda" : "prendas"}{groom ? " (contando su peinado)" : ""}{outfitCount < 4 ? ". Con 4 o más luce mejor." : ". ¡Muy elegante!"}</span>
             <Link href="/vestuario" onClick={() => goTo("vestir")} className={cn(btn, "flex items-center gap-1.5 bg-card")}><Shirt className="size-4" aria-hidden /> Vestirlo</Link>
           </div>
           <fieldset className="flex flex-col gap-2">

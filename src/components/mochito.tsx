@@ -5,6 +5,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { motion, useReducedMotion } from "motion/react";
 import { Droplets, Gamepad2, Gift, Heart, Moon, Smile, UtensilsCrossed } from "lucide-react";
 import { MochitoFigure } from "@/components/mochito-figure";
+import { groomActive } from "@/lib/mochito-extra";
 import { MochitoPanel } from "@/components/mochito-panel";
 import { MochitoHome } from "@/components/mochito-things";
 import { PuppyArt } from "@/components/puppy-art";
@@ -85,7 +86,7 @@ export function Mochito({ className, style, interactive = true, dance = false, h
   const bday = mochitoBirthday(profile.mochito_stats?.days, now);
   const festive = festiveOf(now, !!bday?.isToday);
   const sleeping = isNight(now) && !dance;
-  const img = <MochitoFigure outfit={profile.mochito_outfit} festive={festive} sleeping={sleeping} />;
+  const img = <MochitoFigure outfit={profile.mochito_outfit} festive={festive} groom={groomActive(profile.mochito_groom, now) ? profile.mochito_groom : null} sleeping={sleeping} />;
   if (!interactive) {
     const visitor = home ? visitorOf(profile.mochito_friends, now) : null;
     return (
