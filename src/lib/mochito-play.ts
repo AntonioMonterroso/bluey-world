@@ -27,6 +27,10 @@ export interface MochitoStats {
   brushes?: number;
   fairs?: number;
   fbdays?: number;
+  daycares?: number;
+  plays?: number;
+  cleans?: number;
+  repairs?: number;
   days: string[]; // días en que lo cuidaste
   walk_day?: string; // último día que salió de paseo
   xp_day?: string;
@@ -35,11 +39,11 @@ export interface MochitoStats {
   count?: Partial<Record<CareKind, number>>; // lo que hicieron hoy (para las misiones)
 }
 
-export type CareKind = "pet" | "treat" | "game" | "walk" | "trick" | "bath" | "photo" | "vet" | "story" | "show" | "groom" | "trip" | "party" | "garden" | "street" | "school" | "bake" | "buddy" | "letter" | "camp" | "stand" | "teeth" | "tree" | "fair" | "fbday";
+export type CareKind = "pet" | "treat" | "game" | "walk" | "trick" | "bath" | "photo" | "vet" | "story" | "show" | "groom" | "trip" | "party" | "garden" | "street" | "school" | "bake" | "buddy" | "letter" | "camp" | "stand" | "teeth" | "tree" | "fair" | "fbday" | "daycare" | "theater" | "clean" | "repair";
 
 export const EMPTY_STATS: MochitoStats = { xp: 0, pets: 0, treats: 0, games: 0, walks: 0, days: [] };
 
-export const CARE_XP: Record<CareKind, number> = { pet: 2, treat: 4, game: 6, walk: 8, trick: 10, bath: 6, photo: 2, vet: 6, story: 4, show: 10, groom: 6, trip: 12, party: 15, garden: 3, street: 8, school: 8, bake: 5, buddy: 3, letter: 4, camp: 12, stand: 8, teeth: 4, tree: 6, fair: 12, fbday: 8 };
+export const CARE_XP: Record<CareKind, number> = { pet: 2, treat: 4, game: 6, walk: 8, trick: 10, bath: 6, photo: 2, vet: 6, story: 4, show: 10, groom: 6, trip: 12, party: 15, garden: 3, street: 8, school: 8, bake: 5, buddy: 3, letter: 4, camp: 12, stand: 8, teeth: 4, tree: 6, fair: 12, fbday: 8, daycare: 10, theater: 6, clean: 8, repair: 8 };
 /** Tope de experiencia por día con cariños, galletas y juegos (el paseo y los trucos no cuentan). */
 export const DAILY_XP = 40;
 export const PET_XP_EVERY_MS = 5 * 60_000;
@@ -74,6 +78,10 @@ export function applyCare(stats: MochitoStats | undefined, kind: CareKind, now: 
   if (kind === "teeth") s.brushes = (s.brushes ?? 0) + 1;
   if (kind === "fair") s.fairs = (s.fairs ?? 0) + 1;
   if (kind === "fbday") s.fbdays = (s.fbdays ?? 0) + 1;
+  if (kind === "daycare") s.daycares = (s.daycares ?? 0) + 1;
+  if (kind === "theater") s.plays = (s.plays ?? 0) + 1;
+  if (kind === "clean") s.cleans = (s.cleans ?? 0) + 1;
+  if (kind === "repair") s.repairs = (s.repairs ?? 0) + 1;
 
   let gain = CARE_XP[kind];
   if (kind === "pet" && lastPet && now - lastPet < PET_XP_EVERY_MS) gain = 0;
@@ -121,7 +129,7 @@ export const trickReady = (t: Trick, level: number) => level >= t.level;
 
 // ── Medallas ────────────────────────────────────────────────────────
 
-export interface MedalInput { stats: MochitoStats; tricks: string[]; level: number; things: number; friends?: number; stickers?: number; weathers?: number; storiesRead?: number; blue?: number; harvests?: number; seedKinds?: number; places?: number; cozy?: number; treasures?: number; diplomas?: number; bakedKinds?: number; buddyHearts?: number; stars?: number; perfectStand?: boolean; teethBest?: number; treeParts?: number; bigPrizes?: number; fbdayFriends?: number }
+export interface MedalInput { stats: MochitoStats; tricks: string[]; level: number; things: number; friends?: number; stickers?: number; weathers?: number; storiesRead?: number; blue?: number; harvests?: number; seedKinds?: number; places?: number; cozy?: number; treasures?: number; diplomas?: number; bakedKinds?: number; buddyHearts?: number; stars?: number; perfectStand?: boolean; teethBest?: number; treeParts?: number; bigPrizes?: number; fbdayFriends?: number; recycled?: number; toyKinds?: number; perfectDaycare?: boolean }
 export interface Medal { id: string; name: string; desc: string; coins: number; check: (m: MedalInput) => boolean }
 
 export const MEDALS: Medal[] = [
@@ -183,6 +191,14 @@ export const MEDALS: Medal[] = [
   { id: "feria-grande", name: "Puntería de oro", desc: "Gana un premio grande en el tiro al blanco.", coins: 15, check: (m) => (m.bigPrizes ?? 0) >= 1 },
   { id: "cumple-amigo-1", name: "Buen amigo", desc: "Festeja el cumpleaños de un perrito del parque.", coins: 10, check: (m) => (m.stats.fbdays ?? 0) >= 1 },
   { id: "cumple-amigos-todos", name: "Nunca se le olvida", desc: "Festeja el cumpleaños de los 8 perritos del parque.", coins: 30, check: (m) => (m.fbdayFriends ?? 0) >= 8 },
+  { id: "guarderia-1", name: "Cuidacachorros", desc: "Cuida a los cachorritos de los vecinos.", coins: 10, check: (m) => (m.stats.daycares ?? 0) >= 1 },
+  { id: "guarderia-perfecta", name: "Todos felices", desc: "Cuida a los cachorritos sin un solo error.", coins: 15, check: (m) => !!m.perfectDaycare },
+  { id: "teatro-1", name: "¡Se abre el telón!", desc: "Presenta una obra de títeres.", coins: 5, check: (m) => (m.stats.plays ?? 0) >= 1 },
+  { id: "teatro-10", name: "Gran director", desc: "Presenta 10 obras.", coins: 20, check: (m) => (m.stats.plays ?? 0) >= 10 },
+  { id: "parque-1", name: "Parque limpio", desc: "Limpia el parque una vez.", coins: 5, check: (m) => (m.stats.cleans ?? 0) >= 1 },
+  { id: "parque-100", name: "Amigo del planeta", desc: "Recicla bien 100 cosas.", coins: 25, check: (m) => (m.recycled ?? 0) >= 100 },
+  { id: "taller-1", name: "Manitas", desc: "Arregla un juguete en el taller.", coins: 5, check: (m) => (m.stats.repairs ?? 0) >= 1 },
+  { id: "taller-todos", name: "Doctor de juguetes", desc: "Arregla los 4 tipos de juguete.", coins: 20, check: (m) => (m.toyKinds ?? 0) >= 4 },
   { id: "amigos-todos", name: "Amigo de todos", desc: "Hazte amigo de todos los perritos del parque.", coins: 30, check: (m) => (m.friends ?? 0) >= FRIENDS.length },
 ];
 

@@ -12,6 +12,7 @@ import {
   type CourseId, type RoomSlot, type Treasure, type Treat,
 } from "@/lib/mochito-extra-2";
 import type { GameEvent } from "@/lib/db/db";
+import { DAYCARE_COINS, DAYCARE_PERFECT, PLAY_COINS, TOYS, WORKSHOP_COINS, type Toy } from "@/lib/mochito-extra-5";
 import {
   BDAY_COINS, BDAY_FAV_COINS, FAIR_COINS, FRIEND_BDAYS, GIFTS, TEETH_COINS, TEETH_STREAK, TEETH_STREAK_COINS, TREE_DONE_COINS, TREE_PARTS, TREE_PART_COINS,
   addMats, canBuild, fairKey, gatherOf, teethNext, type Gift, type TreePart,
@@ -36,6 +37,7 @@ export function medalInputOf(p: Partial<typeof DEFAULT_PROFILE>): MedalInput {
     places: Object.values(p.mochito_trips?.places ?? {}).filter((n) => n > 0).length,
     cozy: roomCozy(p.mochito_room), treasures: Object.values(p.mochito_treasures ?? {}).filter((n) => n > 0).length,
     diplomas: diplomas(p.mochito_school), bakedKinds: Object.values(p.mochito_baked ?? {}).filter((n) => n > 0).length,
+    recycled: p.mochito_clean?.total ?? 0, toyKinds: Object.values(p.mochito_workshop?.fixed ?? {}).filter((n) => n > 0).length, perfectDaycare: (p.mochito_daycare?.perfect ?? 0) > 0,
     teethBest: p.mochito_teeth?.best ?? 0, treeParts: (p.mochito_tree?.built ?? []).length, bigPrizes: p.mochito_fair?.big ?? 0, fbdayFriends: Object.keys(p.mochito_fbdays ?? {}).length,
     buddyHearts: p.mochito_buddy?.hearts ?? 0, stars: new Set(p.mochito_camp?.stars ?? []).size, perfectStand: (p.mochito_stand?.perfect ?? 0) > 0,
   };
@@ -572,4 +574,64 @@ export async function celebrateFriend(id: string, year: number, gift: Gift) {
   await writeAwards([{ id: `mochito-cumple-amigo:${id}:${year}`, kind: "mochito", label: `Cumpleaños de ${friend?.name ?? id}`, xp: 0, coins: BDAY_COINS + (fav ? BDAY_FAV_COINS : 0), at: now }], await db.game_events.toArray());
   const r = await mochitoDo("fbday");
   return { ...r, fav };
+}
+
+// ── Guardería ───────────────────────────────────────────────────────
+
+/** Regresaron las familias: paga por cada cachorrito y un extra si no hubo errores. */
+export async function finishDaycare(names: string[], mistakes: number) {
+  const now = Date.now();
+  const d = dayKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_daycare?.last === d) return null;
+  await updateProfile({ mochito_daycare: { last: d, perfect: (p.mochito_daycare?.perfect ?? 0) + (mistakes ? 0 : 1) }, mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "daycare", names })) });
+  const coins = names.length * DAYCARE_COINS + (mistakes ? 0 : DAYCARE_PERFECT);
+  await writeAwards([{ id: `mochito-guarderia:${d}`, kind: "mochito", label: "Guardería de cachorritos", xp: 0, coins, at: now }], await db.game_events.toArray());
+  const r = await mochitoDo("daycare");
+  return { ...r, coins };
+}
+
+// ── Teatro ──────────────────────────────────────────────────────────
+
+/** Presentaron una obra: se guarda en la lista. La primera del día da monedas. */
+export async function presentPlay(title: string) {
+  const now = Date.now();
+  const d = dayKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  const first = p.mochito_theater?.last !== d;
+  await updateProfile({ mochito_theater: { last: d, plays: [...(p.mochito_theater?.plays ?? []), { d, title }].slice(-20) }, mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "theater", title })) });
+  if (first) await writeAwards([{ id: `mochito-teatro:${d}`, kind: "mochito", label: `Obra de títeres: ${title}`, xp: 0, coins: PLAY_COINS, at: now }], await db.game_events.toArray());
+  const r = await mochitoDo("theater");
+  return { ...r, first };
+}
+
+// ── Limpiar el parque ───────────────────────────────────────────────
+
+/** Terminó de limpiar el parque (una vez al día): una moneda por cada cosa bien reciclada. */
+export async function finishClean(ok: number) {
+  const now = Date.now();
+  const d = dayKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_clean?.last === d) return null;
+  await updateProfile({ mochito_clean: { last: d, total: (p.mochito_clean?.total ?? 0) + ok }, mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "clean", ok })) });
+  if (ok > 0) await writeAwards([{ id: `mochito-parque:${d}`, kind: "mochito", label: "Limpiaron el parque", xp: 0, coins: ok, at: now }], await db.game_events.toArray());
+  return mochitoDo("clean");
+}
+
+// ── Taller de juguetes ──────────────────────────────────────────────
+
+/** Arreglaron el juguete del día: el amigo queda más contento. */
+export async function finishRepair(toy: Toy, friendId: string) {
+  const now = Date.now();
+  const d = dayKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_workshop?.last === d) return null;
+  const friend = FRIENDS.find((f) => f.id === friendId);
+  await updateProfile({
+    mochito_workshop: { last: d, fixed: { ...p.mochito_workshop?.fixed, [toy]: (p.mochito_workshop?.fixed?.[toy] ?? 0) + 1 } },
+    mochito_friends: { ...p.mochito_friends, [friendId]: (p.mochito_friends?.[friendId] ?? 0) + 1 },
+    mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "repair", toy: `su ${TOYS[toy].name.toLowerCase()}`, friend: friend?.name ?? friendId })),
+  });
+  await writeAwards([{ id: `mochito-taller:${d}`, kind: "mochito", label: `Taller: ${TOYS[toy].name}`, xp: 0, coins: WORKSHOP_COINS, at: now }], await db.game_events.toArray());
+  return mochitoDo("repair");
 }

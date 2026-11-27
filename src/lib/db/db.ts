@@ -59,6 +59,10 @@ export interface Profile extends SyncRow {
   mochito_tree?: import("../mochito-extra-4").TreeHouse; // casita del árbol: partes hechas y materiales
   mochito_fair?: import("../mochito-extra-4").Fair; // feria: último mes y premios ganados
   mochito_fbdays?: Record<string, number>; // cumpleaños de amigos: perrito → último año festejado
+  mochito_daycare?: import("../mochito-extra-5").Daycare; // guardería: último día y veces sin errores
+  mochito_theater?: import("../mochito-extra-5").Theater; // teatro: último día y obras presentadas
+  mochito_clean?: import("../mochito-extra-5").Clean; // parque: último día y cosas recicladas bien
+  mochito_workshop?: import("../mochito-extra-5").Workshop; // taller: último día y juguetes arreglados por tipo
   mochito_house?: { style?: string; roof?: string; wall?: string; flowers?: string; sign?: string }; // su casita en el jardín
   mochito_stats?: import("../mochito-play").MochitoStats; // nivel, cuentas y días que lo cuidaste
   mochito_tricks?: string[]; // trucos que ya aprendió

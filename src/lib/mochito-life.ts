@@ -84,7 +84,8 @@ export type LogEvent =
   | { kind: "groom"; style: string } | { kind: "trip"; place: string; souvenir: string } | { kind: "party"; what: string; friends: string[] } | { kind: "harvest"; what: string } | { kind: "gave"; what: string; to?: string }
   | { kind: "street"; treasure?: string; neighbor?: string } | { kind: "school"; course: string; diploma: boolean } | { kind: "bake"; recipe: string; count: number }
   | { kind: "buddy"; name: string; what: string } | { kind: "letter"; from: string } | { kind: "camp"; stars: string } | { kind: "stand"; ok: number; total: number }
-  | { kind: "teeth"; streak: number } | { kind: "tree"; part: string; done: boolean } | { kind: "fair"; prize: string } | { kind: "fbday"; friend: string; gift: string };
+  | { kind: "teeth"; streak: number } | { kind: "tree"; part: string; done: boolean } | { kind: "fair"; prize: string } | { kind: "fbday"; friend: string; gift: string }
+  | { kind: "daycare"; names: string[] } | { kind: "theater"; title: string } | { kind: "clean"; ok: number } | { kind: "repair"; toy: string; friend: string };
 
 const listOf = (a: string[]) => (a.length <= 1 ? a.join("") : `${a.slice(0, -1).join(", ")} y ${a[a.length - 1]}`);
 
@@ -125,6 +126,10 @@ export function logLine(ev: LogEvent): string {
     case "tree": return ev.done ? "¡Terminamos la casita del árbol! Desde arriba se ve todo el jardín." : `Construimos ${ev.part.toLowerCase()} de la casita del árbol.`;
     case "fair": return `Fuimos a la feria y me gané: ${ev.prize.toLowerCase()}.`;
     case "fbday": return `Fue el cumpleaños de ${ev.friend} y le regalamos ${ev.gift.toLowerCase()}.`;
+    case "daycare": return `Cuidamos a ${listOf(ev.names)} mientras sus familias salían. ¡Se portaron muy bien!`;
+    case "theater": return `Presentamos la obra «${ev.title}». ¡El público aplaudió de pie!`;
+    case "clean": return `Limpiamos el parque y reciclamos ${ev.ok} ${ev.ok === 1 ? "cosa" : "cosas"}. Quedó precioso.`;
+    case "repair": return `Le arreglamos ${ev.toy.toLowerCase()} a ${ev.friend}.`;
     case "gave": return ev.to ? `Le regalamos ${ev.what} a ${ev.to}. Se puso feliz.` : `Me diste ${ev.what} de mi jardín. ¡Qué rico!`;
     case "birthday": return `¡Cumplí ${ev.age} ${ev.age === 1 ? "año" : "años"}! Hubo pastel y regalo.`;
   }
