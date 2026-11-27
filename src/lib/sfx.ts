@@ -79,3 +79,14 @@ export function sfxForLog(log: string): Sfx | null {
   if (log.includes("se fue") || log.includes("esperó demasiado")) return "sad";
   return null;
 }
+
+const DRUM_NOTES = [261.63, 329.63, 392, 523.25];
+/** Un golpe de tambor (0 a 3): cada tambor tiene su nota. */
+export function drum(i: number) {
+  if (!enabled) return;
+  unlockAudio();
+  if (!audioCtx()) return;
+  const f = DRUM_NOTES[i % DRUM_NOTES.length];
+  tone(f, 0, 0.35, "triangle", 0.2);
+  tone(f / 2, 0, 0.18, "sine", 0.16);
+}

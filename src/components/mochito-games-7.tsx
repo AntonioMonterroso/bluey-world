@@ -422,7 +422,7 @@ const INK = "#3a2a22";
 type Region = { id: string; name: string; el: (fill: string) => React.ReactElement };
 const R = (id: string, name: string, el: (fill: string) => React.ReactElement): Region => ({ id, name, el });
 const sw = { stroke: INK, strokeWidth: 2.6, strokeLinejoin: "round" as const };
-const REGIONS: Region[] = [
+export const REGIONS: Region[] = [
   R("cielo", "El cielo", (f) => <rect x="0" y="0" width="300" height="205" fill={f} />),
   R("sol", "El sol", (f) => <circle cx="248" cy="52" r="26" fill={f} {...sw} />),
   R("pasto", "El pasto", (f) => <path d="M0 200 Q150 182 300 200 V300 H0 Z" fill={f} {...sw} />),

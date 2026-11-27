@@ -81,7 +81,8 @@ export type LogEvent =
   | { kind: "trick"; name: string } | { kind: "medal"; name: string } | { kind: "level"; level: number }
   | { kind: "thing"; name: string } | { kind: "birthday"; age: number } | { kind: "missions" } | { kind: "cooked"; recipe: string } | { kind: "sticker"; name: string }
   | { kind: "vet"; ailment?: string } | { kind: "story"; title: string } | { kind: "show"; place: string; ribbon: string } | { kind: "painting" }
-  | { kind: "groom"; style: string } | { kind: "trip"; place: string; souvenir: string } | { kind: "party"; what: string; friends: string[] } | { kind: "harvest"; what: string } | { kind: "gave"; what: string; to?: string };
+  | { kind: "groom"; style: string } | { kind: "trip"; place: string; souvenir: string } | { kind: "party"; what: string; friends: string[] } | { kind: "harvest"; what: string } | { kind: "gave"; what: string; to?: string }
+  | { kind: "street"; treasure?: string; neighbor?: string } | { kind: "school"; course: string; diploma: boolean } | { kind: "bake"; recipe: string; count: number };
 
 const listOf = (a: string[]) => (a.length <= 1 ? a.join("") : `${a.slice(0, -1).join(", ")} y ${a[a.length - 1]}`);
 
@@ -111,6 +112,9 @@ export function logLine(ev: LogEvent): string {
     case "trip": return `Nos fuimos de viaje ${ev.place} y traje un recuerdo: ${ev.souvenir.toLowerCase()}.`;
     case "party": return `¡Me hiciste mi fiesta de ${ev.what}!${ev.friends.length ? ` Vinieron ${listOf(ev.friends)}.` : ""}`;
     case "harvest": return `Cosechamos ${ev.what} en mi jardín.`;
+    case "street": return `Paseamos con correa por la colonia${ev.neighbor ? ` y saludamos ${ev.neighbor.toLowerCase().startsWith("el ") ? `al ${ev.neighbor.toLowerCase().slice(3)}` : `a ${ev.neighbor.toLowerCase()}`}` : ""}.${ev.treasure ? ` Me traje un tesoro: ${ev.treasure.toLowerCase()}.` : ""}`;
+    case "school": return ev.diploma ? `¡Me gradué en «${ev.course}»! Ya tengo mi diploma.` : `Fui a la escuela de perritos: pasé una clase de «${ev.course}».`;
+    case "bake": return `Me horneaste ${ev.count} ${ev.recipe.toLowerCase()}. ¡Toda la casa olía rico!`;
     case "gave": return ev.to ? `Le regalamos ${ev.what} a ${ev.to}. Se puso feliz.` : `Me diste ${ev.what} de mi jardín. ¡Qué rico!`;
     case "birthday": return `¡Cumplí ${ev.age} ${ev.age === 1 ? "año" : "años"}! Hubo pastel y regalo.`;
   }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Fish, Disc3, SearchCheck, Type, Palette, Puzzle, Route, CloudRain, Bone, Brain, ChefHat, Music, ScanSearch, CircleDot, Grid3x3, Dog, EyeOff, Footprints, LayoutGrid, Wand2, Cake, Coins, ListOrdered, Search, ShoppingBasket, Timer, Trophy } from "lucide-react";
+import { Hash, Layers, Cylinder, Target, TrainFront, Drum, Fish, Disc3, SearchCheck, Type, Palette, Puzzle, Route, CloudRain, Bone, Brain, ChefHat, Music, ScanSearch, CircleDot, Grid3x3, Dog, EyeOff, Footprints, LayoutGrid, Wand2, Cake, Coins, ListOrdered, Search, ShoppingBasket, Timer, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CakeGame } from "@/components/cake-game";
 import { GuessGame, MemoryGame, Result, StepsGame, type Play } from "@/components/mini-games";
@@ -14,6 +14,7 @@ import { BoneGame, RhythmGame } from "@/components/mochito-games-5";
 import { BubbleGame, LoteriaGame } from "@/components/mochito-games-6";
 import { CookieRainGame, MazeGame, PaintGame, PuzzleGame } from "@/components/mochito-games-7";
 import { DiffGame, FishGame, FrisbeeGame, SoupGame } from "@/components/mochito-games-8";
+import { BowlingGame, CansGame, DrumGame, NumbersGame, ShadowGame, TrainGame } from "@/components/mochito-games-9";
 import { mochitoGameGoto, useClearMochitoGoto } from "@/lib/mochito-goto";
 import { OvenGame } from "@/components/oven-game";
 import { Stars } from "@/components/stars";
@@ -25,7 +26,7 @@ import { useIsClient } from "@/lib/use-is-client";
 import { cn } from "@/lib/utils";
 
 const LIST: { id: MiniGame; text: string; icon: typeof Brain }[] = [
-  { id: "mochito", text: "Mochito atrapa premios y esquiva lo que le hace daño.", icon: Bone },
+  { id: "mochito", text: "Tres carriles: atrapa lo que Mochito pide y esquiva lo que le hace daño.", icon: Bone },
   { id: "pelota", text: "Lanza la pelota a la banderita y Mochito corre por ella.", icon: Dog },
   { id: "escondidas", text: "Mochito se esconde en el local. ¡Encuéntralo a tiempo!", icon: EyeOff },
   { id: "simon", text: "Repite los trucos de Mochito en el mismo orden.", icon: Wand2 },
@@ -44,6 +45,12 @@ const LIST: { id: MiniGame; text: string; icon: typeof Brain }[] = [
   { id: "frisbee", text: "Lanza con la fuerza justa para que Mochito lo atrape.", icon: Disc3 },
   { id: "diferencias", text: "Dos dibujos del parque casi iguales: encuentra lo que cambió.", icon: SearchCheck },
   { id: "sopa", text: "Palabras de perritos escondidas entre letras.", icon: Type },
+  { id: "numeros", text: "Cada número es un color: pinta el dibujo sin salirte del número.", icon: Hash },
+  { id: "sombras", text: "Une cada cosa con su sombra.", icon: Layers },
+  { id: "latas", text: "Apunta y lanza la pelota para tumbar la torre de latas.", icon: Cylinder },
+  { id: "bolos", text: "Boliche en el parque: apunta, dale efecto y tumba los pinos.", icon: Target },
+  { id: "tren", text: "Junta huesos y se te suman amiguitos atrás. ¡No choques!", icon: TrainFront },
+  { id: "tambor", text: "Mochito toca una melodía y tú la repites.", icon: Drum },
   { id: "pasos", text: "Pon en orden los pasos de tus recetas.", icon: ListOrdered },
   { id: "memoria", text: "Encuentra las parejas de ingredientes.", icon: Brain },
   { id: "adivina", text: "Pistas de ingredientes y a adivinar.", icon: Search },
@@ -107,6 +114,12 @@ function Inner() {
   if (game === "frisbee") return <FrisbeeGame key={k} play={play} onExit={exit} />;
   if (game === "diferencias") return <DiffGame key={k} play={play} onExit={exit} />;
   if (game === "sopa") return <SoupGame key={k} play={play} onExit={exit} />;
+  if (game === "numeros") return <NumbersGame key={k} play={play} onExit={exit} />;
+  if (game === "sombras") return <ShadowGame key={k} play={play} onExit={exit} />;
+  if (game === "latas") return <CansGame key={k} play={play} onExit={exit} />;
+  if (game === "bolos") return <BowlingGame key={k} play={play} onExit={exit} />;
+  if (game === "tren") return <TrainGame key={k} play={play} onExit={exit} />;
+  if (game === "tambor") return <DrumGame key={k} play={play} onExit={exit} />;
 
   return (
     <div className="flex max-w-5xl flex-col gap-6">
