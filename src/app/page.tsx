@@ -2,6 +2,7 @@ import { Greeting } from "@/components/greeting";
 import { HeroCharacter } from "@/components/hero-character";
 import { HomeToday } from "@/components/home-today";
 import { LevelCard } from "@/components/level-card";
+import { MochitoHomeCard } from "@/components/mochito-home-card";
 
 export default function Home() {
   return (
@@ -13,6 +14,7 @@ export default function Home() {
         <HeroCharacter />
       </section>
 
+      <MochitoHomeCard />
       <HomeToday />
       <LevelCard />
     </div>

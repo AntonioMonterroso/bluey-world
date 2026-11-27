@@ -79,7 +79,7 @@ export type LogEvent =
   | { kind: "pet" } | { kind: "treat" } | { kind: "bath" } | { kind: "photo" } | { kind: "gift"; coins: number }
   | { kind: "walk"; friend?: string; newFriend?: boolean } | { kind: "game"; game?: string }
   | { kind: "trick"; name: string } | { kind: "medal"; name: string } | { kind: "level"; level: number }
-  | { kind: "thing"; name: string } | { kind: "birthday"; age: number } | { kind: "missions" } | { kind: "cooked"; recipe: string };
+  | { kind: "thing"; name: string } | { kind: "birthday"; age: number } | { kind: "missions" } | { kind: "cooked"; recipe: string } | { kind: "sticker"; name: string };
 
 /** Cómo lo cuenta Mochito en su diario (en primera persona). */
 export function logLine(ev: LogEvent): string {
@@ -95,6 +95,7 @@ export function logLine(ev: LogEvent): string {
     case "medal": return `Gané la medalla «${ev.name}».`;
     case "level": return `¡Subí al nivel ${ev.level}!`;
     case "thing": return `Estrené ${ev.name.toLowerCase()}.`;
+    case "sticker": return `Gané una pegatina para mi álbum: ${ev.name}.`;
     case "cooked": return `Te acompañé a cocinar ${ev.recipe}. Olía delicioso.`;
     case "missions": return "¡Cumplimos las tres misiones del día!";
     case "birthday": return `¡Cumplí ${ev.age} ${ev.age === 1 ? "año" : "años"}! Hubo pastel y regalo.`;
@@ -292,3 +293,57 @@ export function rhythmSong(rnd: () => number, l: "facil" | "normal" | "dificil",
 export type Judge = "perfect" | "good" | "miss";
 export const judge = (delta: number): Judge => (Math.abs(delta) <= RHYTHM_PERFECT ? "perfect" : Math.abs(delta) <= RHYTHM_GOOD ? "good" : "miss");
 export const rhythmScore = (perfect: number, good: number, total: number) => (total ? Math.min(1, (perfect + good * 0.6) / total) : 0);
+
+// ── Atrapa burbujas ─────────────────────────────────────────────────
+
+export const BUBBLE_MS = 30_000;
+export const bubbleSpec = (l: "facil" | "normal" | "dificil") => (l === "facil" ? { every: 900, speed: 0.16, gold: 0.15 } : l === "dificil" ? { every: 520, speed: 0.3, gold: 0.1 } : { every: 700, speed: 0.22, gold: 0.12 });
+export const BUBBLE_POINTS = { normal: 1, gold: 3 };
+/** Puntaje: lo que reventaste contra lo que salió. */
+export const bubbleScore = (got: number, possible: number) => (possible > 0 ? Math.max(0, Math.min(1, got / possible / 0.8)) : 0);
+
+// ── Lotería de Mochito ──────────────────────────────────────────────
+
+export interface LoteriaCard { id: string; name: string; verse: string }
+
+export const LOTERIA: LoteriaCard[] = [
+  { id: "pose:feliz", name: "Mochito", verse: "El que mueve la colita: ¡Mochito!" },
+  { id: "pose:dormido", name: "El dormilón", verse: "Cierra los ojos y ronca bajito: ¡el dormilón!" },
+  { id: "pose:fiesta", name: "El fiestero", verse: "Con gorrito y serpentina: ¡el fiestero!" },
+  { id: "pose:saltando", name: "El brincón", verse: "Salta y salta sin parar: ¡el brincón!" },
+  { id: "pose:sentado", name: "El obediente", verse: "Se sienta cuando le dicen: ¡el obediente!" },
+  { id: "pose:girado", name: "El curioso", verse: "Todo lo quiere oler: ¡el curioso!" },
+  { id: "amigo:panque", name: "Panqué", verse: "Huele a vainilla: ¡Panqué!" },
+  { id: "amigo:canela", name: "Canela", verse: "Se persigue la cola: ¡Canela!" },
+  { id: "amigo:pimienta", name: "Pimienta", verse: "Cuida todo el parque: ¡Pimienta!" },
+  { id: "amigo:chispa", name: "Chispa", verse: "Más rápida que el viento: ¡Chispa!" },
+  { id: "amigo:nube", name: "Nube", verse: "Blanquita y dormilona: ¡Nube!" },
+  { id: "amigo:tamal", name: "Tamal", verse: "Siempre pregunta si hay comida: ¡Tamal!" },
+  { id: "amigo:rayo", name: "Rayo", verse: "Ve una pelota y sale corriendo: ¡Rayo!" },
+  { id: "amigo:luna", name: "Luna", verse: "Le gustan las estrellas: ¡Luna!" },
+  { id: "pet:cama-nube", name: "La cama", verse: "Suavecita como algodón: ¡la cama!" },
+  { id: "pet:plato", name: "El platito", verse: "Nunca lo deja con nada: ¡el platito!" },
+  { id: "pet:pelota", name: "La pelota", verse: "Redonda y saltarina: ¡la pelota!" },
+  { id: "pet:cuerda", name: "La cuerda", verse: "Tira tú, que yo tiro: ¡la cuerda!" },
+  { id: "pet:hueso", name: "El hueso", verse: "Lo esconde en el jardín: ¡el hueso!" },
+  { id: "pet:peluche", name: "El peluche", verse: "Su amigo de las siestas: ¡el peluche!" },
+  { id: "pet:cama-rey", name: "La cama de rey", verse: "Para el rey de la casa: ¡la cama de rey!" },
+  { id: "pet:plato-hueso", name: "El plato de hueso", verse: "Con su huesito pintado: ¡el plato de hueso!" },
+  { id: "pet:cama-corazon", name: "La cama de corazón", verse: "Hecha con puro cariño: ¡la cama de corazón!" },
+  { id: "icon:galleta", name: "La galleta", verse: "Crujiente y sin chocolate: ¡la galleta!" },
+];
+
+export const LOTERIA_BOARD = 16;
+export const loteriaEvery = (l: "facil" | "normal" | "dificil") => (l === "facil" ? 3800 : l === "dificil" ? 2100 : 2900);
+
+/** Tu tabla (16 cartas) y el orden en que Mochito las canta (todas, revueltas). */
+export function loteriaGame(rnd: () => number) {
+  const deck = [...LOTERIA];
+  for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
+  const pool = [...LOTERIA];
+  const board: LoteriaCard[] = [];
+  for (let i = 0; i < LOTERIA_BOARD; i++) board.push(pool.splice(Math.floor(rnd() * pool.length), 1)[0]);
+  return { board, calls: deck };
+}
+/** Puntaje: casillas bien marcadas; llenar la tabla da todo, cada error resta un poco. */
+export const loteriaScore = (marked: number, wrong: number) => Math.max(0, Math.min(1, marked / LOTERIA_BOARD - wrong * 0.05));

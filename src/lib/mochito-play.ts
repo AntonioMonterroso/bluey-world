@@ -89,7 +89,7 @@ export const trickReady = (t: Trick, level: number) => level >= t.level;
 
 // ── Medallas ────────────────────────────────────────────────────────
 
-export interface MedalInput { stats: MochitoStats; tricks: string[]; level: number; things: number; friends?: number }
+export interface MedalInput { stats: MochitoStats; tricks: string[]; level: number; things: number; friends?: number; stickers?: number }
 export interface Medal { id: string; name: string; desc: string; coins: number; check: (m: MedalInput) => boolean }
 
 export const MEDALS: Medal[] = [
@@ -111,6 +111,8 @@ export const MEDALS: Medal[] = [
   { id: "bano-10", name: "Siempre limpiecito", desc: "Báñalo 10 veces.", coins: 10, check: (m) => (m.stats.baths ?? 0) >= 10 },
   { id: "foto-5", name: "Fotógrafo", desc: "Tómale 5 fotos.", coins: 10, check: (m) => (m.stats.photos ?? 0) >= 5 },
   { id: "amigo-1", name: "Primer amigo", desc: "Haz un amigo en el paseo.", coins: 10, check: (m) => (m.friends ?? 0) >= 1 },
+  { id: "pegatinas-10", name: "Coleccionista", desc: "Junta 10 pegatinas distintas.", coins: 10, check: (m) => (m.stickers ?? 0) >= 10 },
+  { id: "pegatinas-todas", name: "Álbum completo", desc: "Junta las 32 pegatinas.", coins: 40, check: (m) => (m.stickers ?? 0) >= 32 },
   { id: "amigos-todos", name: "Amigo de todos", desc: "Hazte amigo de todos los perritos del parque.", coins: 30, check: (m) => (m.friends ?? 0) >= FRIENDS.length },
 ];
 

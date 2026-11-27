@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 /** Deja dicho a qué pantalla va Mochito (un juego o el vestidor) para que se abra directo ahí. */
 export const MOCHITO_GOTO = "bw-mochito-goto";
-export type MochitoGoto = "vestir" | "juego:mochito" | "juego:pelota" | "juego:escondidas" | "juego:simon" | "juego:carrera" | "juego:cocinam" | "juego:memoriam" | "juego:hueso" | "juego:ritmo";
+export type MochitoGoto = "vestir" | "juego:mochito" | "juego:pelota" | "juego:escondidas" | "juego:simon" | "juego:carrera" | "juego:cocinam" | "juego:memoriam" | "juego:hueso" | "juego:ritmo" | "juego:burbujas" | "juego:loteria";
 export const goTo = (where: MochitoGoto) => { try { sessionStorage.setItem(MOCHITO_GOTO, where); } catch {} };
 
 /** ¿Venimos del rincón de Mochito al vestidor? */
@@ -13,7 +13,7 @@ export function cameFromMochito(where: "vestir") {
 }
 
 /** Si venimos del rincón de Mochito a jugar, cuál de sus juegos abrir. */
-const MOCHITO_GAMES = ["mochito", "pelota", "escondidas", "simon", "carrera", "cocinam", "memoriam", "hueso", "ritmo"] as const;
+const MOCHITO_GAMES = ["mochito", "pelota", "escondidas", "simon", "carrera", "cocinam", "memoriam", "hueso", "ritmo", "burbujas", "loteria"] as const;
 export function mochitoGameGoto(): (typeof MOCHITO_GAMES)[number] | null {
   try {
     const v = sessionStorage.getItem(MOCHITO_GOTO)?.replace("juego:", "");

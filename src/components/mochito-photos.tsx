@@ -7,6 +7,7 @@ import { Camera, Download, Share2, Trash2, X } from "lucide-react";
 import { DressedImage } from "@/components/dressed-image";
 import { MochitoHome } from "@/components/mochito-things";
 import { PuppyArt } from "@/components/puppy-art";
+import { HouseArt } from "@/components/mochito-house";
 import { db } from "@/lib/db/db";
 import { useProfile } from "@/lib/db/profile";
 import { deleteMochitoPhoto, saveMochitoPhoto } from "@/lib/mochito-actions";
@@ -14,8 +15,9 @@ import { friendsOf } from "@/lib/mochito-play";
 import { sfx } from "@/lib/sfx";
 import { cn } from "@/lib/utils";
 
-type Scene = "parque" | "local" | "estudio" | "fiesta";
+type Scene = "jardin" | "parque" | "local" | "estudio" | "fiesta";
 const SCENES: { id: Scene; name: string; css: string }[] = [
+  { id: "jardin", name: "Su casita", css: "linear-gradient(#d6ecfb 0 68%, #a5dcae 68% 100%)" },
   { id: "parque", name: "Parque", css: "linear-gradient(#cfe8fb 0 70%, #9fdcb4 70% 100%)" },
   { id: "local", name: "Local", css: "linear-gradient(#fbe3ea 0 72%, #d9a77c 72% 100%)" },
   { id: "estudio", name: "Estudio", css: "radial-gradient(circle at 50% 40%, #fff7e6, #f3d9a4)" },
@@ -28,7 +30,9 @@ function drawScene(ctx: CanvasRenderingContext2D, scene: Scene, w: number, h: nu
     ctx.fillStyle = top; ctx.fillRect(0, 0, w, h * at);
     ctx.fillStyle = bottom; ctx.fillRect(0, h * at, w, h * (1 - at));
   };
-  if (scene === "parque") {
+  if (scene === "jardin") {
+    band("#d6ecfb", "#a5dcae", 0.68);
+  } else if (scene === "parque") {
     band("#cfe8fb", "#9fdcb4", 0.7);
     ctx.fillStyle = "#ffffff";
     for (const [x, y, r] of [[0.15, 0.18, 0.05], [0.2, 0.17, 0.06], [0.75, 0.12, 0.05], [0.8, 0.13, 0.04]]) { ctx.beginPath(); ctx.arc(w * x, h * y, w * r, 0, Math.PI * 2); ctx.fill(); }
@@ -177,6 +181,7 @@ export function PhotoTab({ level, onLine }: { level: number; onLine: (s: string)
       </div>
 
       <div ref={stage} className="relative flex h-56 items-end justify-center gap-2 overflow-hidden rounded-3xl pb-4" style={{ background: SCENES.find((s) => s.id === scene)!.css }}>
+        {scene === "jardin" && <span className="absolute bottom-3 left-2 h-32 w-36"><HouseArt house={profile.mochito_house} /></span>}
         {withFriends && friends[0] && <span className="mb-1 h-20 w-20"><PuppyArt friend={friends[0]} /></span>}
         <div className="h-40 px-8">
           <MochitoHome home={profile.mochito_home}>

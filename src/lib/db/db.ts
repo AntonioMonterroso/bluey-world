@@ -34,6 +34,8 @@ export interface Profile extends SyncRow {
   mochito_log?: { d: string; e: string[] }[]; // su diario: lo que hicieron juntos cada día
   mochito_gift?: { day?: string; streak?: number }; // regalo del día: último día abierto y racha
   mochito_greet?: string; // último día que te dio los buenos días
+  mochito_stickers?: Record<string, number>; // pegatinas: id → cuántas tiene
+  mochito_house?: { style?: string; roof?: string; wall?: string; flowers?: string; sign?: string }; // su casita en el jardín
   mochito_stats?: import("../mochito-play").MochitoStats; // nivel, cuentas y días que lo cuidaste
   mochito_tricks?: string[]; // trucos que ya aprendió
   mochito_home?: { bed?: string; bowl?: string; toy?: string }; // sus cosas puestas (ids de la tienda)

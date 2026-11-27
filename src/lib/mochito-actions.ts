@@ -4,7 +4,8 @@ import { db, type OwnedItem } from "@/lib/db/db";
 import { DEFAULT_PROFILE, PROFILE_ID, updateProfile } from "@/lib/db/profile";
 import { upsertRow } from "@/lib/db/repo";
 import { dayKey } from "@/lib/game/engine";
-import { writeAwards } from "@/lib/game/use-game";
+import { pushToast, writeAwards } from "@/lib/game/use-game";
+import { STICKER_CHANCE, pickSticker, stickerCount, type Sticker } from "@/lib/mochito-stickers";
 import { MOCHITO_WEAR, WEAR_ITEMS, mochitoWearUnlocked } from "@/lib/game/wardrobe";
 import { PET_ITEMS } from "@/lib/game/shop";
 import { BIRTHDAY_GIFT, appendLog, giftFor, giftOpened, logLine, mochitoBirthday, nextStreak, type LogEvent } from "@/lib/mochito-life";
@@ -26,7 +27,7 @@ export async function mochitoLog(...events: LogEvent[]) {
 async function payMedals() {
   const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
   const stats = { ...EMPTY_STATS, ...p.mochito_stats };
-  const medals = earnedMedals({ stats, tricks: p.mochito_tricks ?? [], level: mochitoLevel(stats.xp).level, things: thingsOf(p.mochito_home), friends: friendsOf(p.mochito_friends).length });
+  const medals = earnedMedals({ stats, tricks: p.mochito_tricks ?? [], level: mochitoLevel(stats.xp).level, things: thingsOf(p.mochito_home), friends: friendsOf(p.mochito_friends).length, stickers: stickerCount(p.mochito_stickers) });
   if (!medals.length) return [];
   const existing = await db.game_events.toArray();
   const had = new Set(existing.filter((e) => !e.deleted_at).map((e) => e.id));
@@ -35,12 +36,24 @@ async function payMedals() {
   return medals.filter((m) => !had.has(medalEventId(m.id))).map((m) => m.name);
 }
 
+/** A veces gana una pegatina (según lo que hicieron). Avisa con un mensajito y la anota en su diario. */
+export async function maybeSticker(kind: string, force = false): Promise<Sticker | null> {
+  const chance = STICKER_CHANCE[kind] ?? 0;
+  if (!force && Math.random() >= chance) return null;
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  const st = pickSticker(Math.random, p.mochito_stickers);
+  const had = p.mochito_stickers?.[st.id] ?? 0;
+  await updateProfile({ mochito_stickers: { ...p.mochito_stickers, [st.id]: had + 1 }, mochito_log: appendLog(p.mochito_log, Date.now(), logLine({ kind: "sticker", name: st.name })) });
+  pushToast({ title: had ? "Pegatina repetida" : "¡Pegatina nueva!", lines: [`${st.name}${had ? ` (ya tienes ${had + 1})` : ""}`], levelUp: false });
+  return st;
+}
+
 /** Le da la ropa exclusiva que ya ganó (por nivel o medallas). Devuelve los nombres de lo nuevo. */
 export async function unlockMochitoWear() {
   const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
   const stats = { ...EMPTY_STATS, ...p.mochito_stats };
   const level = mochitoLevel(stats.xp).level;
-  const medals = new Set(earnedMedals({ stats, tricks: p.mochito_tricks ?? [], level, things: thingsOf(p.mochito_home), friends: friendsOf(p.mochito_friends).length }).map((m) => m.id));
+  const medals = new Set(earnedMedals({ stats, tricks: p.mochito_tricks ?? [], level, things: thingsOf(p.mochito_home), friends: friendsOf(p.mochito_friends).length, stickers: stickerCount(p.mochito_stickers) }).map((m) => m.id));
   const owned = new Set((await db.owned_items.toArray()).filter((o) => !o.deleted_at).map((o) => o.id));
   const fresh = MOCHITO_WEAR.filter((w) => !owned.has(w.id) && mochitoWearUnlocked(w, level, medals));
   const now = Date.now();
@@ -75,8 +88,10 @@ export async function mochitoDo(kind: CareKind, extra: { trick?: string; friend?
   const medals = await payMedals();
   const after = mochitoLevel(stats.xp).level;
   await mochitoLog(...medals.map((name): LogEvent => ({ kind: "medal", name })), ...(after > before ? [{ kind: "level", level: after } as LogEvent] : []));
+  const sticker = await maybeSticker(kind);
+  const more = sticker ? await payMedals() : [];
   const wear = await unlockMochitoWear();
-  return { before, after, medals, wear };
+  return { before, after, medals: [...medals, ...more], wear, sticker };
 }
 
 /** El paseo del día: una vez al día, encuentra algo, a veces un amiguito, y regresa con lodo. */
@@ -157,6 +172,8 @@ export async function claimMissions() {
   const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
   const stats = { ...EMPTY_STATS, ...p.mochito_stats };
   await updateProfile({ mochito_stats: { ...stats, xp: stats.xp + MISSIONS_REWARD.dogXp }, mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "missions" })) });
+  await maybeSticker("missions");
+  await payMedals();
   await unlockMochitoWear();
   return true;
 }

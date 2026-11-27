@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bone, Brain, ChefHat, Music, ScanSearch, Dog, EyeOff, Footprints, LayoutGrid, Wand2, Cake, Coins, ListOrdered, Search, ShoppingBasket, Timer, Trophy } from "lucide-react";
+import { Bone, Brain, ChefHat, Music, ScanSearch, CircleDot, Grid3x3, Dog, EyeOff, Footprints, LayoutGrid, Wand2, Cake, Coins, ListOrdered, Search, ShoppingBasket, Timer, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CakeGame } from "@/components/cake-game";
 import { GuessGame, MemoryGame, Result, StepsGame, type Play } from "@/components/mini-games";
@@ -11,6 +11,7 @@ import { FetchGame, HideGame } from "@/components/mochito-games-2";
 import { RunGame, SimonGame } from "@/components/mochito-games-3";
 import { CookGame, MemoGame } from "@/components/mochito-games-4";
 import { BoneGame, RhythmGame } from "@/components/mochito-games-5";
+import { BubbleGame, LoteriaGame } from "@/components/mochito-games-6";
 import { mochitoGameGoto, useClearMochitoGoto } from "@/lib/mochito-goto";
 import { OvenGame } from "@/components/oven-game";
 import { Stars } from "@/components/stars";
@@ -31,6 +32,8 @@ const LIST: { id: MiniGame; text: string; icon: typeof Brain }[] = [
   { id: "memoriam", text: "Parejas de Mochito en poses y sus amigos del parque.", icon: LayoutGrid },
   { id: "hueso", text: "Cava en el parque: frío o caliente hasta hallar su hueso.", icon: ScanSearch },
   { id: "ritmo", text: "Toca al ritmo cuando las patitas lleguen a la línea.", icon: Music },
+  { id: "burbujas", text: "Mochito brinca a reventar burbujas; las doradas valen más.", icon: CircleDot },
+  { id: "loteria", text: "Mochito canta las cartas y tú llenas tu tabla.", icon: Grid3x3 },
   { id: "pasos", text: "Pon en orden los pasos de tus recetas.", icon: ListOrdered },
   { id: "memoria", text: "Encuentra las parejas de ingredientes.", icon: Brain },
   { id: "adivina", text: "Pistas de ingredientes y a adivinar.", icon: Search },
@@ -84,6 +87,8 @@ function Inner() {
   if (game === "memoriam") return <MemoGame key={k} play={play} onExit={exit} />;
   if (game === "hueso") return <BoneGame key={k} play={play} onExit={exit} />;
   if (game === "ritmo") return <RhythmGame key={k} play={play} onExit={exit} />;
+  if (game === "burbujas") return <BubbleGame key={k} play={play} onExit={exit} />;
+  if (game === "loteria") return <LoteriaGame key={k} play={play} onExit={exit} />;
 
   return (
     <div className="flex max-w-5xl flex-col gap-6">

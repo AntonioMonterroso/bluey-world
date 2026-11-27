@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { Award, Check, Target, BookHeart, Cake, Gift, Moon, Bath, Bell, Bone, Camera, Coins, Cookie, Dog, Droplets, Flower2, Footprints, Gamepad2, Hand, Heart, Home, Lock, Shirt, Sparkles, TreePine, Users, Wand2 } from "lucide-react";
+import { Award, Check, Star, Target, BookHeart, Cake, Gift, Moon, Bath, Bell, Bone, Camera, Coins, Cookie, Dog, Droplets, Flower2, Footprints, Gamepad2, Hand, Heart, Home, Lock, Shirt, Sparkles, TreePine, Users, Wand2 } from "lucide-react";
 import { DressedImage } from "@/components/dressed-image";
 import { MochitoFigure } from "@/components/mochito-figure";
 import { goTo, type MochitoGoto } from "@/lib/mochito-goto";
@@ -20,6 +20,8 @@ import { BIRTHDAY_GIFT, MOCHITO_BDAY_LINES, festiveOf, giftFor, giftOpened, isMo
 import { dayKey } from "@/lib/game/engine";
 import { MISSIONS_REWARD, missionProgress, missionsFor, type Mission, EMPTY_STATS, FRIEND_AT, MEDALS, SCRUB_STEPS, TEACH_TRIES, TRICKS, earnedMedals, friendsOf, mochitoLevel, trickReady, walkedToday, type Friend, type WalkFind } from "@/lib/mochito-play";
 import { FriendsTab } from "@/components/mochito-friends";
+import { StickersTab } from "@/components/mochito-stickers";
+import { HouseArt, HouseDesigner } from "@/components/mochito-house";
 import { PhotoTab } from "@/components/mochito-photos";
 import { TRICK_MOVES } from "@/lib/mochito-moves";
 import { sfx } from "@/lib/sfx";
@@ -28,7 +30,7 @@ import { cn } from "@/lib/utils";
 const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 const pickOf = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 
-type Tab = "cuidar" | "trucos" | "medallas" | "cosas" | "amigos" | "fotos" | "diario";
+type Tab = "cuidar" | "trucos" | "medallas" | "cosas" | "amigos" | "fotos" | "diario" | "pegatinas";
 const TABS: { id: Tab; label: string; icon: typeof Heart }[] = [
   { id: "cuidar", label: "Cuidar", icon: Heart },
   { id: "trucos", label: "Trucos", icon: Wand2 },
@@ -37,6 +39,7 @@ const TABS: { id: Tab; label: string; icon: typeof Heart }[] = [
   { id: "amigos", label: "Amigos", icon: Users },
   { id: "fotos", label: "Fotos", icon: Camera },
   { id: "diario", label: "Diario", icon: BookHeart },
+  { id: "pegatinas", label: "Pegatinas", icon: Star },
 ];
 
 const GAMES: { goto: MochitoGoto; name: string; icon: typeof Bone }[] = [
@@ -49,6 +52,8 @@ const GAMES: { goto: MochitoGoto; name: string; icon: typeof Bone }[] = [
   { goto: "juego:memoriam", name: "Memoria", icon: Sparkles },
   { goto: "juego:hueso", name: "Hueso", icon: Bone },
   { goto: "juego:ritmo", name: "Ritmo", icon: Footprints },
+  { goto: "juego:burbujas", name: "Burbujas", icon: Droplets },
+  { goto: "juego:loteria", name: "Lotería", icon: Star },
 ];
 
 function Bar({ label, value, icon: Icon }: { label: string; value: number; icon: typeof Heart }) {
@@ -111,6 +116,7 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
     const r = await mochitoDo(kind, extra);
     if (r.after > r.before) { sfx("success"); setLine(`${pickOf(LEVEL_UP)} Ya soy nivel ${r.after}.${TRICKS.some((t) => t.level === r.after) ? " ¡Y puedo aprender un truco nuevo!" : ""}`); }
     else if (r.medals.length) { sfx("success"); setLine(`${pickOf(MEDAL_WON)} Es «${r.medals[0]}».`); }
+    if (r.sticker) setLine((l) => `${l ?? ""} ¡Y me gané la pegatina «${r.sticker!.name}»!`.trim());
     if (r.wear.length) { sfx("success"); setLine((l) => `${l ?? ""} ¡Y gané ropa nueva: ${r.wear.join(", ")}! Está en el vestuario.`.trim()); }
   }
   function pet() {
@@ -220,7 +226,7 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
           <p aria-live="polite" className="mb-6 min-w-0 flex-1 rounded-3xl rounded-bl-md bg-secondary px-4 py-3 text-base leading-snug text-pretty text-foreground">{said}</p>
         </div>
 
-        <div role="tablist" aria-label="Rincón de Mochito" className="grid grid-cols-4 gap-1 rounded-[1.75rem] bg-secondary p-1 sm:grid-cols-7">
+        <div role="tablist" aria-label="Rincón de Mochito" className="grid grid-cols-4 gap-1 rounded-[1.75rem] bg-secondary p-1 sm:grid-cols-8">
           {TABS.map((t) => {
             const Icon = t.icon;
             return (
@@ -236,7 +242,7 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
             {bath ? (
               <BathScene reduce={!!reduce} muddy={!!care.muddy} outfit={profile.mochito_outfit} onStep={(t) => setLine(t)} onDone={() => void finishBath()} onClose={() => setBath(false)} />
             ) : walk ? (
-              <WalkScene reduce={!!reduce} find={walk.phase === "done" ? walk.find : undefined} outfit={profile.mochito_outfit} onArrive={arrive} onClose={() => setWalk(null)} />
+              <WalkScene reduce={!!reduce} find={walk.phase === "done" ? walk.find : undefined} outfit={profile.mochito_outfit} house={profile.mochito_house} onArrive={arrive} onClose={() => setWalk(null)} />
             ) : (
               <>
                 <MissionsCard missions={missionsFor(now)} stats={profile.mochito_stats} now={now} did={new Set([...(did ?? []), ...(did?.includes("earned") ? ["spent"] : []), ...(giftOpened(profile.mochito_gift, now) ? ["gift"] : [])])} claimed={g.events.some((e) => e.id === missionsEventId(now))} onClaim={() => void claimMissions().then((ok) => { if (ok) { sfx("cash"); setLine(`¡Cumplimos las misiones! Te ganaste ${MISSIONS_REWARD.coins} monedas y yo subí un poquito.`); } })} />
@@ -346,8 +352,10 @@ export function MochitoPanel({ open, onOpenChange, now, news }: { open: boolean;
         )}
 
         {tab === "cosas" && <ThingsTab g={g} home={profile.mochito_home} onLine={setLine} />}
+        {tab === "cosas" && <HouseDesigner house={profile.mochito_house} onLine={setLine} />}
         {tab === "amigos" && <FriendsTab met={profile.mochito_friends} />}
         {tab === "fotos" && <PhotoTab level={lvl.level} onLine={setLine} />}
+        {tab === "pegatinas" && <StickersTab have={profile.mochito_stickers} outfit={profile.mochito_outfit} />}
         {tab === "diario" && <DiaryTab log={profile.mochito_log} now={now} since={bday?.since} />}
       </SheetContent>
     </Sheet>
@@ -409,12 +417,12 @@ function ThingsTab({ g, home, onLine }: { g: ReturnType<typeof useGame>; home?: 
 }
 
 /** El paseo: Mochito cruza el parque y al llegar cuenta lo que encontró. */
-function WalkScene({ reduce, find, outfit, onArrive, onClose }: { reduce: boolean; find?: WalkFind; outfit?: Record<string, string>; onArrive: () => void; onClose: () => void }) {
+function WalkScene({ reduce, find, outfit, house, onArrive, onClose }: { reduce: boolean; find?: WalkFind; outfit?: Record<string, string>; house?: { style?: string; roof?: string; wall?: string; flowers?: string; sign?: string }; onArrive: () => void; onClose: () => void }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="relative h-40 overflow-hidden rounded-3xl bg-gradient-to-b from-sky-100 to-sky-50 dark:from-sky-950 dark:to-sky-900">
         <div className="absolute inset-x-0 bottom-0 h-10 bg-emerald-200 dark:bg-emerald-900" />
-        <TreePine className="absolute bottom-8 left-[12%] size-14 text-emerald-600" aria-hidden />
+        <div className="absolute bottom-7 left-[3%] h-24 w-28"><HouseArt house={house} /></div>
         <TreePine className="absolute bottom-8 right-[8%] size-16 text-emerald-700" aria-hidden />
         <Flower2 className="absolute bottom-3 left-[40%] size-6 text-pink-500" aria-hidden />
         <Flower2 className="absolute bottom-4 left-[62%] size-5 text-amber-500" aria-hidden />

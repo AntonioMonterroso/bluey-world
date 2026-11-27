@@ -156,3 +156,32 @@ describe("Misiones, ropa exclusiva, cocina y juegos nuevos", () => {
     expect(rhythmScore(0, 10, 10)).toBeCloseTo(0.6);
   });
 });
+
+describe("Pegatinas, burbujas y lotería", () => {
+  it("hay 32 pegatinas, 8 por tema, y salen más las que faltan", async () => {
+    const { STICKERS, STICKER_THEMES, pickSticker, stickerCount } = await import("@/lib/mochito-stickers");
+    expect(STICKERS).toHaveLength(32);
+    for (const t of STICKER_THEMES) expect(STICKERS.filter((s) => s.theme === t.id)).toHaveLength(8);
+    expect(new Set(STICKERS.map((s) => s.id)).size).toBe(32);
+    const r = rng("p");
+    const counts: Record<string, number> = {};
+    for (let i = 0; i < 2000; i++) { const s = pickSticker(r, undefined); counts[s.rarity] = (counts[s.rarity] ?? 0) + 1; }
+    expect(counts.comun).toBeGreaterThan(counts.rara);
+    expect(counts.rara).toBeGreaterThan(counts.brillante);
+    expect(stickerCount({ "st-feliz": 2, "st-hueso": 0 })).toBe(1);
+  });
+
+  it("burbujas y lotería calculan bien", async () => {
+    const { bubbleScore, LOTERIA, LOTERIA_BOARD, loteriaGame, loteriaScore } = await import("@/lib/mochito-life");
+    expect(bubbleScore(8, 10)).toBe(1);
+    expect(bubbleScore(0, 10)).toBe(0);
+    expect(LOTERIA).toHaveLength(24);
+    const g = loteriaGame(rng("l"));
+    expect(g.board).toHaveLength(LOTERIA_BOARD);
+    expect(new Set(g.board.map((c) => c.id)).size).toBe(LOTERIA_BOARD);
+    expect(g.calls).toHaveLength(24);
+    expect(g.board.every((c) => g.calls.some((x) => x.id === c.id))).toBe(true);
+    expect(loteriaScore(16, 0)).toBe(1);
+    expect(loteriaScore(8, 2)).toBeCloseTo(0.4);
+  });
+});
