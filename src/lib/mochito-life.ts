@@ -88,7 +88,8 @@ export type LogEvent =
   | { kind: "daycare"; names: string[] } | { kind: "theater"; title: string } | { kind: "clean"; ok: number } | { kind: "repair"; toy: string; friend: string }
   | { kind: "kite"; height: number } | { kind: "beach"; shells: number; rare: string[] } | { kind: "sleepover"; friend: string; snack: string } | { kind: "chores"; did: string[] }
   | { kind: "market"; items: string[] } | { kind: "dig"; part: string; dino: string; done: boolean } | { kind: "picnic"; friends: string[]; left: number } | { kind: "race"; place: number; time: number }
-  | { kind: "farm"; eggs: number; golden: boolean } | { kind: "night"; moon: string; found: string[]; wishes: number } | { kind: "pool"; rings: number; floatie: string } | { kind: "carwash"; spots: number };
+  | { kind: "farm"; eggs: number; golden: boolean } | { kind: "night"; moon: string; found: string[]; wishes: number } | { kind: "pool"; rings: number; floatie: string } | { kind: "carwash"; spots: number }
+  | { kind: "zoo"; animals: string[] } | { kind: "cinema"; movie: string; right: number } | { kind: "fire"; cat: boolean } | { kind: "balloon"; photos: string[] };
 
 const listOf = (a: string[]) => (a.length <= 1 ? a.join("") : `${a.slice(0, -1).join(", ")} y ${a[a.length - 1]}`);
 
@@ -143,6 +144,10 @@ export function logLine(ev: LogEvent): string {
     case "farm": return `Fuimos a la granja, les dimos de comer a los animales y ordeñamos a la vaca. Juntamos ${ev.eggs} ${ev.eggs === 1 ? "huevo" : "huevos"}${ev.golden ? ", ¡uno era dorado!" : "."}`;
     case "night": return `Miramos el cielo con el telescopio: había ${ev.moon.toLowerCase()} y encontramos ${listOf(ev.found)}.${ev.wishes ? ` Pedimos ${ev.wishes} ${ev.wishes === 1 ? "deseo" : "deseos"} a las estrellas fugaces.` : ""}`;
     case "pool": return `Fuimos a la piscina con mi ${ev.floatie.toLowerCase()}. Me tiré del trampolín y saqué ${ev.rings} ${ev.rings === 1 ? "aro" : "aros"} del fondo.`;
+    case "zoo": return `Fuimos al zoológico y llevamos a cada animal a su casa: ${listOf(ev.animals.map((x) => x.toLowerCase()))}.`;
+    case "cinema": return `Fuimos al cine a ver «${ev.movie}». Comí palomitas y ${ev.right === 2 ? "me acordé de todo" : "me quedé dormido un ratito"}.`;
+    case "fire": return `Fuimos a la estación de bomberos, apagamos los fuegos${ev.cat ? " y bajamos un gatito de un árbol" : ""}. ¡Qué valientes!`;
+    case "balloon": return ev.photos.length ? `Paseamos en globo y desde arriba fotografiamos ${listOf(ev.photos.map((x) => x.toLowerCase()))}.` : "Paseamos en globo por encima del pueblo. ¡Todo se veía chiquito!";
     case "carwash": return `Lavamos el carro: lo mojamos, lo enjabonamos, le quitamos ${ev.spots} ${ev.spots === 1 ? "mancha" : "manchas"} y quedó brillante.`;
     case "chores": return `Ayudamos en casa: ${listOf(ev.did)}. ¡Todo quedó en orden!`;
     case "gave": return ev.to ? `Le regalamos ${ev.what} a ${ev.to}. Se puso feliz.` : `Me diste ${ev.what} de mi jardín. ¡Qué rico!`;

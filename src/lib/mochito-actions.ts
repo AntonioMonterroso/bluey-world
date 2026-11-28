@@ -12,6 +12,7 @@ import {
   type CourseId, type RoomSlot, type Treasure, type Treat,
 } from "@/lib/mochito-extra-2";
 import type { GameEvent } from "@/lib/db/db";
+import { BALLOON_COINS, CINEMA_COINS, FIRE_COINS, FIRE_PERFECT, MOVIES, PHOTO_COINS, PLACES_UP, QUIZ_COIN, ZOO_ANIMALS, ZOO_COINS, type MovieId, type PlaceUp, type ZooAnimal } from "@/lib/mochito-extra-9";
 import { CAR_COINS, CAR_PERFECT, FARM_COINS, FLOATIES, FARM_PERFECT_COINS, MOON_PHASES, RINGS, STARS_COINS, WISH_COIN, poolCoins, skyName, type Floatie, type SkyThing } from "@/lib/mochito-extra-8";
 import { CHANGE_BONUS, DINO_DONE_COINS, DINO_PARTS, MARKET_COINS, PICNIC_HEART, RACE_COINS, digCoins, nextPart, picnicCoins, type Derby } from "@/lib/mochito-extra-7";
 import { CHORES, CHORES_ALL_COINS, CHORE_COIN, SHELLS, SLEEP_COINS, SLEEP_HEARTS, beachCoins, choresOf, kiteCoins, type ChoreId, type Shell } from "@/lib/mochito-extra-6";
@@ -45,6 +46,7 @@ export function medalInputOf(p: Partial<typeof DEFAULT_PROFILE>): MedalInput {
     sleepFriends: Object.keys(p.mochito_sleep?.friends ?? {}).length, choreStars: p.mochito_chores?.stars ?? 0,
     exactChange: p.mochito_market?.exact ?? 0, dinoParts: p.mochito_dig?.found ?? 0, perfectPicnic: (p.mochito_picnic?.perfect ?? 0) > 0, raceWins: p.mochito_derby?.wins ?? 0,
     farmEggs: p.mochito_farm?.eggs ?? 0, skyKinds: Object.values(p.mochito_sky?.seen ?? {}).filter((n) => (n ?? 0) > 0).length, allRings: (p.mochito_pool?.allRings ?? 0) > 0,
+    zooKinds: Object.values(p.mochito_zoo?.seen ?? {}).filter((n) => (n ?? 0) > 0).length, perfectMovies: p.mochito_cinema?.perfect ?? 0, catsSaved: p.mochito_fire?.cats ?? 0, placesUp: Object.values(p.mochito_balloon?.photos ?? {}).filter((n) => (n ?? 0) > 0).length,
     teethBest: p.mochito_teeth?.best ?? 0, treeParts: (p.mochito_tree?.built ?? []).length, bigPrizes: p.mochito_fair?.big ?? 0, fbdayFriends: Object.keys(p.mochito_fbdays ?? {}).length,
     buddyHearts: p.mochito_buddy?.hearts ?? 0, stars: new Set(p.mochito_camp?.stars ?? []).size, perfectStand: (p.mochito_stand?.perfect ?? 0) > 0,
   };
@@ -868,5 +870,86 @@ export async function finishCarWash(spots: number, mistakes: number) {
   const coins = CAR_COINS + (mistakes ? 0 : CAR_PERFECT);
   await writeAwards([{ id: `mochito-carro:${d}`, kind: "mochito", label: "Lavamos el carro", xp: 0, coins, at: now }], await db.game_events.toArray());
   const r = await mochitoDo("carwash");
+  return { ...r, coins };
+}
+
+// ── Zoológico ───────────────────────────────────────────────────────
+
+/** Terminó la visita al zoológico (una al día): los animales van al álbum y los nuevos dan una moneda más. */
+export async function finishZoo(ids: ZooAnimal[]) {
+  const now = Date.now();
+  const d = dayKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_zoo?.last === d) return null;
+  const seen = { ...p.mochito_zoo?.seen };
+  const fresh = ids.filter((id) => !seen[id]);
+  for (const id of ids) seen[id] = (seen[id] ?? 0) + 1;
+  await updateProfile({
+    mochito_zoo: { last: d, visits: (p.mochito_zoo?.visits ?? 0) + 1, seen },
+    mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "zoo", animals: ids.map((id) => ZOO_ANIMALS.find((a) => a.id === id)!.name) })),
+  });
+  const coins = ZOO_COINS + fresh.length;
+  await writeAwards([{ id: `mochito-zoo:${d}`, kind: "mochito", label: "Visita al zoológico", xp: 0, coins, at: now }], await db.game_events.toArray());
+  const r = await mochitoDo("zoo");
+  return { ...r, coins, fresh: fresh.length };
+}
+
+// ── Cine ────────────────────────────────────────────────────────────
+
+/** Salieron del cine (una función al día): monedas por la película y por cada respuesta buena. */
+export async function finishCinema(movie: MovieId, right: number) {
+  const now = Date.now();
+  const d = dayKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_cinema?.last === d) return null;
+  const c = p.mochito_cinema;
+  const m = MOVIES.find((x) => x.id === movie)!;
+  await updateProfile({
+    mochito_cinema: { last: d, movies: (c?.movies ?? 0) + 1, perfect: (c?.perfect ?? 0) + (right >= m.quiz.length ? 1 : 0), seen: [...new Set([...(c?.seen ?? []), movie])] },
+    mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "cinema", movie: m.name, right })),
+  });
+  const coins = CINEMA_COINS + right * QUIZ_COIN;
+  await writeAwards([{ id: `mochito-cine:${d}`, kind: "mochito", label: `Cine: ${m.name}`, xp: 0, coins, at: now }], await db.game_events.toArray());
+  const r = await mochitoDo("cinema");
+  return { ...r, coins };
+}
+
+// ── Bomberos ────────────────────────────────────────────────────────
+
+/** Volvieron a la estación (una llamada al día): monedas, más si ningún fuego se puso grandote, y el gatito cuenta. */
+export async function finishFire(perfect: boolean, cat: boolean) {
+  const now = Date.now();
+  const d = dayKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_fire?.last === d) return null;
+  const f = p.mochito_fire;
+  await updateProfile({
+    mochito_fire: { last: d, calls: (f?.calls ?? 0) + 1, perfect: (f?.perfect ?? 0) + (perfect ? 1 : 0), cats: (f?.cats ?? 0) + (cat ? 1 : 0) },
+    mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "fire", cat })),
+  });
+  const coins = FIRE_COINS + (perfect ? FIRE_PERFECT : 0) + (cat ? 2 : 0);
+  await writeAwards([{ id: `mochito-bomberos:${d}`, kind: "mochito", label: "Día con los bomberos", xp: 0, coins, at: now }], await db.game_events.toArray());
+  const r = await mochitoDo("fire");
+  return { ...r, coins };
+}
+
+// ── Paseo en globo ──────────────────────────────────────────────────
+
+/** Aterrizó el globo (un paseo al día): cada foto de un lugar pedido da monedas y va al álbum. */
+export async function finishBalloon(photos: PlaceUp[]) {
+  const now = Date.now();
+  const d = dayKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_balloon?.last === d) return null;
+  const b = p.mochito_balloon;
+  const all = { ...b?.photos };
+  for (const id of photos) all[id] = (all[id] ?? 0) + 1;
+  await updateProfile({
+    mochito_balloon: { last: d, flights: (b?.flights ?? 0) + 1, photos: all },
+    mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "balloon", photos: photos.map((id) => PLACES_UP[id].name) })),
+  });
+  const coins = BALLOON_COINS + photos.length * PHOTO_COINS;
+  await writeAwards([{ id: `mochito-globo:${d}`, kind: "mochito", label: "Paseo en globo", xp: 0, coins, at: now }], await db.game_events.toArray());
+  const r = await mochitoDo("balloon");
   return { ...r, coins };
 }
