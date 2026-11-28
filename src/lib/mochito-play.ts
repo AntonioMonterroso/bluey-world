@@ -39,6 +39,10 @@ export interface MochitoStats {
   digs?: number;
   picnics?: number;
   races?: number;
+  farms?: number;
+  nights?: number;
+  swims?: number;
+  washes?: number;
   days: string[]; // días en que lo cuidaste
   walk_day?: string; // último día que salió de paseo
   xp_day?: string;
@@ -47,11 +51,11 @@ export interface MochitoStats {
   count?: Partial<Record<CareKind, number>>; // lo que hicieron hoy (para las misiones)
 }
 
-export type CareKind = "pet" | "treat" | "game" | "walk" | "trick" | "bath" | "photo" | "vet" | "story" | "show" | "groom" | "trip" | "party" | "garden" | "street" | "school" | "bake" | "buddy" | "letter" | "camp" | "stand" | "teeth" | "tree" | "fair" | "fbday" | "daycare" | "theater" | "clean" | "repair" | "kite" | "beach" | "sleepover" | "chores" | "market" | "dig" | "picnic" | "race";
+export type CareKind = "pet" | "treat" | "game" | "walk" | "trick" | "bath" | "photo" | "vet" | "story" | "show" | "groom" | "trip" | "party" | "garden" | "street" | "school" | "bake" | "buddy" | "letter" | "camp" | "stand" | "teeth" | "tree" | "fair" | "fbday" | "daycare" | "theater" | "clean" | "repair" | "kite" | "beach" | "sleepover" | "chores" | "market" | "dig" | "picnic" | "race" | "farm" | "night" | "pool" | "carwash";
 
 export const EMPTY_STATS: MochitoStats = { xp: 0, pets: 0, treats: 0, games: 0, walks: 0, days: [] };
 
-export const CARE_XP: Record<CareKind, number> = { pet: 2, treat: 4, game: 6, walk: 8, trick: 10, bath: 6, photo: 2, vet: 6, story: 4, show: 10, groom: 6, trip: 12, party: 15, garden: 3, street: 8, school: 8, bake: 5, buddy: 3, letter: 4, camp: 12, stand: 8, teeth: 4, tree: 6, fair: 12, fbday: 8, daycare: 10, theater: 6, clean: 8, repair: 8, kite: 8, beach: 10, sleepover: 12, chores: 4, market: 8, dig: 8, picnic: 10, race: 12 };
+export const CARE_XP: Record<CareKind, number> = { pet: 2, treat: 4, game: 6, walk: 8, trick: 10, bath: 6, photo: 2, vet: 6, story: 4, show: 10, groom: 6, trip: 12, party: 15, garden: 3, street: 8, school: 8, bake: 5, buddy: 3, letter: 4, camp: 12, stand: 8, teeth: 4, tree: 6, fair: 12, fbday: 8, daycare: 10, theater: 6, clean: 8, repair: 8, kite: 8, beach: 10, sleepover: 12, chores: 4, market: 8, dig: 8, picnic: 10, race: 12, farm: 10, night: 8, pool: 10, carwash: 8 };
 /** Tope de experiencia por día con cariños, galletas y juegos (el paseo y los trucos no cuentan). */
 export const DAILY_XP = 40;
 export const PET_XP_EVERY_MS = 5 * 60_000;
@@ -98,6 +102,10 @@ export function applyCare(stats: MochitoStats | undefined, kind: CareKind, now: 
   if (kind === "dig") s.digs = (s.digs ?? 0) + 1;
   if (kind === "picnic") s.picnics = (s.picnics ?? 0) + 1;
   if (kind === "race") s.races = (s.races ?? 0) + 1;
+  if (kind === "farm") s.farms = (s.farms ?? 0) + 1;
+  if (kind === "night") s.nights = (s.nights ?? 0) + 1;
+  if (kind === "pool") s.swims = (s.swims ?? 0) + 1;
+  if (kind === "carwash") s.washes = (s.washes ?? 0) + 1;
 
   let gain = CARE_XP[kind];
   if (kind === "pet" && lastPet && now - lastPet < PET_XP_EVERY_MS) gain = 0;
@@ -145,7 +153,7 @@ export const trickReady = (t: Trick, level: number) => level >= t.level;
 
 // ── Medallas ────────────────────────────────────────────────────────
 
-export interface MedalInput { stats: MochitoStats; tricks: string[]; level: number; things: number; friends?: number; stickers?: number; weathers?: number; storiesRead?: number; blue?: number; harvests?: number; seedKinds?: number; places?: number; cozy?: number; treasures?: number; diplomas?: number; bakedKinds?: number; buddyHearts?: number; stars?: number; perfectStand?: boolean; teethBest?: number; treeParts?: number; bigPrizes?: number; fbdayFriends?: number; recycled?: number; toyKinds?: number; perfectDaycare?: boolean; kiteBest?: number; shellKinds?: number; sleepFriends?: number; choreStars?: number; exactChange?: number; dinoParts?: number; perfectPicnic?: boolean; raceWins?: number }
+export interface MedalInput { stats: MochitoStats; tricks: string[]; level: number; things: number; friends?: number; stickers?: number; weathers?: number; storiesRead?: number; blue?: number; harvests?: number; seedKinds?: number; places?: number; cozy?: number; treasures?: number; diplomas?: number; bakedKinds?: number; buddyHearts?: number; stars?: number; perfectStand?: boolean; teethBest?: number; treeParts?: number; bigPrizes?: number; fbdayFriends?: number; recycled?: number; toyKinds?: number; perfectDaycare?: boolean; kiteBest?: number; shellKinds?: number; sleepFriends?: number; choreStars?: number; exactChange?: number; dinoParts?: number; perfectPicnic?: boolean; raceWins?: number; farmEggs?: number; skyKinds?: number; allRings?: boolean }
 export interface Medal { id: string; name: string; desc: string; coins: number; check: (m: MedalInput) => boolean }
 
 export const MEDALS: Medal[] = [
@@ -231,6 +239,14 @@ export const MEDALS: Medal[] = [
   { id: "picnic-perfecto", name: "Ni una hormiga", desc: "Termina un picnic sin que se lleven nada.", coins: 15, check: (m) => !!m.perfectPicnic },
   { id: "carrera-1", name: "¡Arrancan!", desc: "Corre en la carrera de carritos.", coins: 5, check: (m) => (m.stats.races ?? 0) >= 1 },
   { id: "carrera-ganar", name: "Primer lugar", desc: "Gana la carrera de carritos de la semana.", coins: 20, check: (m) => (m.raceWins ?? 0) >= 1 },
+  { id: "granja-1", name: "Día en la granja", desc: "Visita la granja y dale de comer a los animales.", coins: 5, check: (m) => (m.stats.farms ?? 0) >= 1 },
+  { id: "granja-huevos", name: "Canasta de huevos", desc: "Junta 20 huevos en la granja.", coins: 20, check: (m) => (m.farmEggs ?? 0) >= 20 },
+  { id: "cielo-1", name: "Ojos al cielo", desc: "Mira el cielo con el telescopio.", coins: 5, check: (m) => (m.stats.nights ?? 0) >= 1 },
+  { id: "cielo-todos", name: "Cuaderno del cielo", desc: "Encuentra las 6 cosas del cielo.", coins: 25, check: (m) => (m.skyKinds ?? 0) >= 6 },
+  { id: "piscina-1", name: "¡Al agua!", desc: "Ve a la piscina.", coins: 5, check: (m) => (m.stats.swims ?? 0) >= 1 },
+  { id: "piscina-aros", name: "Buzo estrella", desc: "Saca los 6 aros en una sola zambullida.", coins: 15, check: (m) => !!m.allRings },
+  { id: "carro-1", name: "Carro brillante", desc: "Lava el carro de la familia.", coins: 5, check: (m) => (m.stats.washes ?? 0) >= 1 },
+  { id: "carro-10", name: "Autolavado Mochito", desc: "Lava el carro 10 veces.", coins: 20, check: (m) => (m.stats.washes ?? 0) >= 10 },
   { id: "amigos-todos", name: "Amigo de todos", desc: "Hazte amigo de todos los perritos del parque.", coins: 30, check: (m) => (m.friends ?? 0) >= FRIENDS.length },
 ];
 

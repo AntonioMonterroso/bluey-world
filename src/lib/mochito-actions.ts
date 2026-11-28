@@ -12,6 +12,7 @@ import {
   type CourseId, type RoomSlot, type Treasure, type Treat,
 } from "@/lib/mochito-extra-2";
 import type { GameEvent } from "@/lib/db/db";
+import { CAR_COINS, CAR_PERFECT, FARM_COINS, FLOATIES, FARM_PERFECT_COINS, MOON_PHASES, RINGS, STARS_COINS, WISH_COIN, poolCoins, skyName, type Floatie, type SkyThing } from "@/lib/mochito-extra-8";
 import { CHANGE_BONUS, DINO_DONE_COINS, DINO_PARTS, MARKET_COINS, PICNIC_HEART, RACE_COINS, digCoins, nextPart, picnicCoins, type Derby } from "@/lib/mochito-extra-7";
 import { CHORES, CHORES_ALL_COINS, CHORE_COIN, SHELLS, SLEEP_COINS, SLEEP_HEARTS, beachCoins, choresOf, kiteCoins, type ChoreId, type Shell } from "@/lib/mochito-extra-6";
 import { DAYCARE_COINS, DAYCARE_PERFECT, PLAY_COINS, TOYS, WORKSHOP_COINS, type Toy } from "@/lib/mochito-extra-5";
@@ -43,6 +44,7 @@ export function medalInputOf(p: Partial<typeof DEFAULT_PROFILE>): MedalInput {
     kiteBest: p.mochito_kite?.best ?? 0, shellKinds: Object.values(p.mochito_beach?.shells ?? {}).filter((n) => (n ?? 0) > 0).length,
     sleepFriends: Object.keys(p.mochito_sleep?.friends ?? {}).length, choreStars: p.mochito_chores?.stars ?? 0,
     exactChange: p.mochito_market?.exact ?? 0, dinoParts: p.mochito_dig?.found ?? 0, perfectPicnic: (p.mochito_picnic?.perfect ?? 0) > 0, raceWins: p.mochito_derby?.wins ?? 0,
+    farmEggs: p.mochito_farm?.eggs ?? 0, skyKinds: Object.values(p.mochito_sky?.seen ?? {}).filter((n) => (n ?? 0) > 0).length, allRings: (p.mochito_pool?.allRings ?? 0) > 0,
     teethBest: p.mochito_teeth?.best ?? 0, treeParts: (p.mochito_tree?.built ?? []).length, bigPrizes: p.mochito_fair?.big ?? 0, fbdayFriends: Object.keys(p.mochito_fbdays ?? {}).length,
     buddyHearts: p.mochito_buddy?.hearts ?? 0, stars: new Set(p.mochito_camp?.stars ?? []).size, perfectStand: (p.mochito_stand?.perfect ?? 0) > 0,
   };
@@ -788,4 +790,83 @@ export async function finishRace(week: string, place: number, time: number, cart
   if (coins) await writeAwards([{ id: `mochito-carrera:${week}`, kind: "mochito", label: `Carrera de carritos: ${place}.º lugar`, xp: 0, coins, at: now }], await db.game_events.toArray());
   const r = await mochitoDo("race");
   return { ...r, coins, first, record: time < (p.mochito_derby?.best ?? Infinity) };
+}
+
+// ── Granja ──────────────────────────────────────────────────────────
+
+/** Terminaron en la granja (una vez al día): monedas, más si todos comieron a la primera, y cada huevo cuenta. */
+export async function finishFarm(eggs: number, golden: boolean, perfect: boolean) {
+  const now = Date.now();
+  const d = dayKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_farm?.last === d) return null;
+  const f = p.mochito_farm;
+  await updateProfile({
+    mochito_farm: { last: d, visits: (f?.visits ?? 0) + 1, eggs: (f?.eggs ?? 0) + eggs, golden: (f?.golden ?? 0) + (golden ? 1 : 0), perfect: (f?.perfect ?? 0) + (perfect ? 1 : 0) },
+    mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "farm", eggs, golden })),
+  });
+  const coins = FARM_COINS + eggs + (golden ? 3 : 0) + (perfect ? FARM_PERFECT_COINS : 0);
+  await writeAwards([{ id: `mochito-granja:${d}`, kind: "mochito", label: "Un día en la granja", xp: 0, coins, at: now }], await db.game_events.toArray());
+  const r = await mochitoDo("farm");
+  return { ...r, coins };
+}
+
+// ── Noche de estrellas ──────────────────────────────────────────────
+
+/** Terminó la noche de estrellas (una al día): lo encontrado va al cuaderno del cielo. */
+export async function finishNight(found: SkyThing[], wishes: number, phase: number) {
+  const now = Date.now();
+  const d = dayKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_sky?.last === d) return null;
+  const sky = p.mochito_sky;
+  const seen = { ...sky?.seen };
+  for (const id of found) seen[id] = (seen[id] ?? 0) + 1;
+  const fresh = found.filter((id) => !sky?.seen?.[id]);
+  await updateProfile({
+    mochito_sky: { last: d, nights: (sky?.nights ?? 0) + 1, seen, wishes: (sky?.wishes ?? 0) + wishes, moons: [...new Set([...(sky?.moons ?? []), phase])] },
+    mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "night", moon: MOON_PHASES[phase], found: found.map(skyName), wishes })),
+  });
+  const coins = STARS_COINS + wishes * WISH_COIN + fresh.length;
+  await writeAwards([{ id: `mochito-estrellas:${d}`, kind: "mochito", label: "Noche de estrellas", xp: 0, coins, at: now }], await db.game_events.toArray());
+  const r = await mochitoDo("night");
+  return { ...r, coins, fresh };
+}
+
+// ── Piscina ─────────────────────────────────────────────────────────
+
+/** Salió de la piscina (una vez al día): monedas por los aros y el clavado. */
+export async function finishPool(rings: number, stars: number, floatie: Floatie) {
+  const now = Date.now();
+  const d = dayKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_pool?.last === d) return null;
+  const pl = p.mochito_pool;
+  await updateProfile({
+    mochito_pool: { last: d, swims: (pl?.swims ?? 0) + 1, best: Math.max(pl?.best ?? 0, rings), allRings: (pl?.allRings ?? 0) + (rings >= RINGS ? 1 : 0), floatie },
+    mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "pool", rings, floatie: FLOATIES[floatie] })),
+  });
+  const coins = poolCoins(rings, stars);
+  await writeAwards([{ id: `mochito-piscina:${d}`, kind: "mochito", label: "Día de piscina", xp: 0, coins, at: now }], await db.game_events.toArray());
+  const r = await mochitoDo("pool");
+  return { ...r, coins };
+}
+
+// ── Lavar el carro ──────────────────────────────────────────────────
+
+/** El carro quedó brillante (una vez al día): monedas, más si no hubo ni un error. */
+export async function finishCarWash(spots: number, mistakes: number) {
+  const now = Date.now();
+  const d = dayKey(now);
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get(PROFILE_ID)) };
+  if (p.mochito_carwash?.last === d) return null;
+  const c = p.mochito_carwash;
+  await updateProfile({
+    mochito_carwash: { last: d, washes: (c?.washes ?? 0) + 1, perfect: (c?.perfect ?? 0) + (mistakes ? 0 : 1) },
+    mochito_log: appendLog(p.mochito_log, now, logLine({ kind: "carwash", spots })),
+  });
+  const coins = CAR_COINS + (mistakes ? 0 : CAR_PERFECT);
+  await writeAwards([{ id: `mochito-carro:${d}`, kind: "mochito", label: "Lavamos el carro", xp: 0, coins, at: now }], await db.game_events.toArray());
+  const r = await mochitoDo("carwash");
+  return { ...r, coins };
 }

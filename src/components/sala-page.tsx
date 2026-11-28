@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Contrast, Rainbow, Waypoints, Image as ImageIcon, Grid2x2, SquareDot, Ship, Worm, Shovel, RectangleHorizontal as Domino, Crown, Columns4, Calculator, Dices, Scissors, Grid3x3 as GridIcon, SpellCheck, Flag, Blocks, Hash, Layers, Cylinder, Target, TrainFront, Drum, Fish, Disc3, SearchCheck, Type, Palette, Puzzle, Route, CloudRain, Bone, Brain, ChefHat, Music, ScanSearch, CircleDot, Grid3x3, Dog, EyeOff, Footprints, LayoutGrid, Wand2, Cake, Coins, ListOrdered, Search, ShoppingBasket, Timer, Trophy } from "lucide-react";
+import { Bean, Move, Lightbulb, CircleDashed, Contrast, Rainbow, Waypoints, Image as ImageIcon, Grid2x2, SquareDot, Ship, Worm, Shovel, RectangleHorizontal as Domino, Crown, Columns4, Calculator, Dices, Scissors, Grid3x3 as GridIcon, SpellCheck, Flag, Blocks, Hash, Layers, Cylinder, Target, TrainFront, Drum, Fish, Disc3, SearchCheck, Type, Palette, Puzzle, Route, CloudRain, Bone, Brain, ChefHat, Music, ScanSearch, CircleDot, Grid3x3, Dog, EyeOff, Footprints, LayoutGrid, Wand2, Cake, Coins, ListOrdered, Search, ShoppingBasket, Timer, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CakeGame } from "@/components/cake-game";
 import { GuessGame, MemoryGame, Result, StepsGame, type Play } from "@/components/mini-games";
@@ -15,6 +15,7 @@ import { BubbleGame, LoteriaGame } from "@/components/mochito-games-6";
 import { CookieRainGame, MazeGame, PaintGame, PuzzleGame } from "@/components/mochito-games-7";
 import { DiffGame, FishGame, FrisbeeGame, SoupGame } from "@/components/mochito-games-8";
 import { CodeGame, FlipGame, PicGame, PipesGame } from "@/components/mochito-games-14";
+import { LightsGame, PegGame, SeedsGame, SlideGame } from "@/components/mochito-games-15";
 import { BoxesGame, ShipsGame, SudokuGame, WormGame } from "@/components/mochito-games-13";
 import { BonesGame, CheckersGame, DominoGame, MolesGame } from "@/components/mochito-games-12";
 import { ConnectFourGame, LaddersGame, RpsGame, SumsGame } from "@/components/mochito-games-11";
@@ -76,6 +77,10 @@ const LIST: { id: MiniGame; text: string; icon: typeof Brain }[] = [
   { id: "colores", text: "Adivina la fila de colores de Mochito con sus pistas.", icon: Rainbow },
   { id: "tubos", text: "Gira los tubos para que el agua llegue a la plantita.", icon: Waypoints },
   { id: "dibujo", text: "Pinta lo que dicen los números y aparece un dibujo.", icon: ImageIcon },
+  { id: "semillas", text: "Reparte semillas por los hoyitos y guarda más que Mochito.", icon: Bean },
+  { id: "deslizar", text: "Desliza los cuadritos al hueco hasta ponerlos en orden.", icon: Move },
+  { id: "luces", text: "Cada toque cambia una luz y sus vecinas: apágalas todas.", icon: Lightbulb },
+  { id: "saltafichas", text: "Brinca fichas para quitarlas hasta dejar solo una.", icon: CircleDashed },
   { id: "pasos", text: "Pon en orden los pasos de tus recetas.", icon: ListOrdered },
   { id: "memoria", text: "Encuentra las parejas de ingredientes.", icon: Brain },
   { id: "adivina", text: "Pistas de ingredientes y a adivinar.", icon: Search },
@@ -165,6 +170,10 @@ function Inner() {
   if (game === "colores") return <CodeGame key={k} play={play} onExit={exit} />;
   if (game === "tubos") return <PipesGame key={k} play={play} onExit={exit} />;
   if (game === "dibujo") return <PicGame key={k} play={play} onExit={exit} />;
+  if (game === "semillas") return <SeedsGame key={k} play={play} onExit={exit} />;
+  if (game === "deslizar") return <SlideGame key={k} play={play} onExit={exit} />;
+  if (game === "luces") return <LightsGame key={k} play={play} onExit={exit} />;
+  if (game === "saltafichas") return <PegGame key={k} play={play} onExit={exit} />;
 
   return (
     <div className="flex max-w-5xl flex-col gap-6">

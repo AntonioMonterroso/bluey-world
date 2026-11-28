@@ -87,7 +87,8 @@ export type LogEvent =
   | { kind: "teeth"; streak: number } | { kind: "tree"; part: string; done: boolean } | { kind: "fair"; prize: string } | { kind: "fbday"; friend: string; gift: string }
   | { kind: "daycare"; names: string[] } | { kind: "theater"; title: string } | { kind: "clean"; ok: number } | { kind: "repair"; toy: string; friend: string }
   | { kind: "kite"; height: number } | { kind: "beach"; shells: number; rare: string[] } | { kind: "sleepover"; friend: string; snack: string } | { kind: "chores"; did: string[] }
-  | { kind: "market"; items: string[] } | { kind: "dig"; part: string; dino: string; done: boolean } | { kind: "picnic"; friends: string[]; left: number } | { kind: "race"; place: number; time: number };
+  | { kind: "market"; items: string[] } | { kind: "dig"; part: string; dino: string; done: boolean } | { kind: "picnic"; friends: string[]; left: number } | { kind: "race"; place: number; time: number }
+  | { kind: "farm"; eggs: number; golden: boolean } | { kind: "night"; moon: string; found: string[]; wishes: number } | { kind: "pool"; rings: number; floatie: string } | { kind: "carwash"; spots: number };
 
 const listOf = (a: string[]) => (a.length <= 1 ? a.join("") : `${a.slice(0, -1).join(", ")} y ${a[a.length - 1]}`);
 
@@ -139,6 +140,10 @@ export function logLine(ev: LogEvent): string {
     case "dig": return ev.done ? `¡Encontramos la última pieza! ${ev.dino} ya está completo en el museo.` : `Excavamos con cuidado y encontramos ${ev.part.toLowerCase()} de ${ev.dino}.`;
     case "picnic": return `Hicimos un picnic${ev.friends.length ? ` con ${listOf(ev.friends)}` : ""}. ${ev.left ? "Espantamos a las hormigas y comimos rico." : "Las hormigas se llevaron todo… ¡pero nos reímos mucho!"}`;
     case "race": return `Corrimos la carrera de carritos: quedamos en ${ev.place}.º lugar con ${ev.time} segundos.`;
+    case "farm": return `Fuimos a la granja, les dimos de comer a los animales y ordeñamos a la vaca. Juntamos ${ev.eggs} ${ev.eggs === 1 ? "huevo" : "huevos"}${ev.golden ? ", ¡uno era dorado!" : "."}`;
+    case "night": return `Miramos el cielo con el telescopio: había ${ev.moon.toLowerCase()} y encontramos ${listOf(ev.found)}.${ev.wishes ? ` Pedimos ${ev.wishes} ${ev.wishes === 1 ? "deseo" : "deseos"} a las estrellas fugaces.` : ""}`;
+    case "pool": return `Fuimos a la piscina con mi ${ev.floatie.toLowerCase()}. Me tiré del trampolín y saqué ${ev.rings} ${ev.rings === 1 ? "aro" : "aros"} del fondo.`;
+    case "carwash": return `Lavamos el carro: lo mojamos, lo enjabonamos, le quitamos ${ev.spots} ${ev.spots === 1 ? "mancha" : "manchas"} y quedó brillante.`;
     case "chores": return `Ayudamos en casa: ${listOf(ev.did)}. ¡Todo quedó en orden!`;
     case "gave": return ev.to ? `Le regalamos ${ev.what} a ${ev.to}. Se puso feliz.` : `Me diste ${ev.what} de mi jardín. ¡Qué rico!`;
     case "birthday": return `¡Cumplí ${ev.age} ${ev.age === 1 ? "año" : "años"}! Hubo pastel y regalo.`;
